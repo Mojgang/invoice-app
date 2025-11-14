@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f7;
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #1d1d1f;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 12px;
+            background: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .tab.active {
+            background: #007aff;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #1d1d1f;
+            font-weight: 500;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d2d2d7;
+            border-radius: 8px;
+            font-size: 16px;
+            background: #f5f5f7;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #007aff;
+            background: white;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: #007aff;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-secondary {
+            background: #34c759;
+        }
+        
+        .btn-success {
+            background: #34c759;
+            padding: 8px 16px;
+            font-size: 14px;
+            width: auto;
+            margin-right: 10px;
+        }
+
+        .btn-danger {
+            background: #ff3b30;
+            padding: 8px 16px;
+            font-size: 14px;
+            width: auto;
+        }
+        
+        .service-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f5f5f7;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .service-item-info {
+            flex: 1;
+        }
+        
+        .service-name {
+            font-weight: 600;
+            color: #1d1d1f;
+            margin-bottom: 4px;
+        }
+        
+        .service-details {
+            color: #86868b;
+            font-size: 14px;
+        }
+        
+        .service-price {
+            font-weight: 600;
+            color: #007aff;
+            font-size: 18px;
+        }
+        
+        .total {
+            background: #007aff;
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 600;
+            margin-top: 20px;
+        }
+        
+        .invoice-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .invoice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .invoice-date {
+            color: #86868b;
+            font-size: 14px;
+        }
+        
+        .invoice-total {
+            font-size: 20px;
+            font-weight: 600;
+            color: #007aff;
+        }
+        
+        .settings-item {
+            background: #f5f5f7;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .settings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .settings-label {
+            font-weight: 500;
+            color: #1d1d1f;
+        }
+        
+        .settings-price {
+            font-weight: 600;
+            color: #007aff;
+        }
+        
+        .joinery-item {
+            margin-left: 20px;
+            margin-top: 8px;
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #86868b;
+            padding: 40px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .small-input {
+            width: 80px;
+            padding: 8px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 Invoice Generator</h1>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('create')">Create Invoice</button>
+            <button class="tab" onclick="switchTab('invoices')">Invoices</button>
+            <button class="tab" onclick="switchTab('settings')">Settings</button>
+        </div>
+        
+        <!-- Create Invoice Tab -->
+        <div id="create" class="tab-content active">
+            <div class="card">
+                <div class="input-group">
+                    <label>Client Name</label>
+                    <input type="text" id="clientName" placeholder="Enter client name">
+                </div>
+                
+                <div class="input-group">
+                    <label>Service Type</label>
+                    <select id="serviceType" onchange="handleServiceChange()">
+                        <option value="">Select a service</option>
+                    </select>
+                </div>
+                
+                <div id="joineryOptions" style="display: none;">
+                    <div class="input-group">
+                        <label>Joinery Item</label>
+                        <select id="joineryItem">
+                            <option value="">Select item</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label id="quantityLabel">Quantity/Size</label>
+                    <input type="number" id="quantity" placeholder="Enter quantity" step="0.01" min="0">
+                </div>
+                
+                <button class="btn" onclick="addItem()">Add Item</button>
+            </div>
+            
+            <div id="invoiceItems"></div>
+            
+            <div class="total" id="totalAmount">Total: $0.00</div>
+            
+            <button class="btn btn-secondary" onclick="saveInvoice()" style="margin-top: 15px;">Save Invoice</button>
+        </div>
+        
+        <!-- Invoices Tab -->
+        <div id="invoices" class="tab-content">
+            <div id="invoicesList"></div>
+        </div>
+        
+        <!-- Settings Tab -->
+        <div id="settings" class="tab-content">
+            <div class="card">
+                <h2 style="margin-bottom: 15px;">Service Prices</h2>
+                <div id="settingsList"></div>
+                <button class="btn" onclick="saveSettings()">Save Prices</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let services = {};
+        let currentItems = [];
+        const API_URL = window.location.origin;
+        
+        // Load services on page load
+        async function loadServices() {
+            try {
+                const response = await fetch(`${API_URL}/api/services`);
+                services = await response.json();
+                populateServiceSelect();
+                populateSettings();
+            } catch (error) {
+                console.error('Error loading services:', error);
+            }
+        }
+        
+        function populateServiceSelect() {
+            const select = document.getElementById('serviceType');
+            select.innerHTML = '<option value="">Select a service</option>';
+            
+            for (const [key, service] of Object.entries(services)) {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = service.name;
+                select.appendChild(option);
+            }
+        }
+        
+        function handleServiceChange() {
+            const serviceType = document.getElementById('serviceType').value;
+            const joineryOptions = document.getElementById('joineryOptions');
+            const quantityLabel = document.getElementById('quantityLabel');
+            
+            if (serviceType === 'joinery') {
+                joineryOptions.style.display = 'block';
+                const select = document.getElementById('joineryItem');
+                select.innerHTML = '<option value="">Select item</option>';
+                
+                for (const [key, item] of Object.entries(services.joinery.items)) {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = `${item.name} - $${item.price}/${item.unit}`;
+                    select.appendChild(option);
+                }
+                quantityLabel.textContent = 'Size (meters)';
+            } else {
+                joineryOptions.style.display = 'none';
+                if (serviceType && services[serviceType]) {
+                    quantityLabel.textContent = `Quantity (${services[serviceType].unit}s)`;
+                } else {
+                    quantityLabel.textContent = 'Quantity/Size';
+                }
+            }
+        }
+        
+        function addItem() {
+            const serviceType = document.getElementById('serviceType').value;
+            const quantity = parseFloat(document.getElementById('quantity').value);
+            
+            if (!serviceType || !quantity) {
+                alert('Please select a service and enter quantity');
+                return;
+            }
+            
+            let item = {};
+            
+            if (serviceType === 'joinery') {
+                const joineryItemKey = document.getElementById('joineryItem').value;
+                if (!joineryItemKey) {
+                    alert('Please select a joinery item');
+                    return;
+                }
+                const joineryItem = services.joinery.items[joineryItemKey];
+                item = {
+                    service: 'Joinery',
+                    subService: joineryItem.name,
+                    quantity: quantity,
+                    unit: joineryItem.unit,
+                    price: joineryItem.price,
+                    total: quantity * joineryItem.price
+                };
+            } else {
+                const service = services[serviceType];
+                item = {
+                    service: service.name,
+                    quantity: quantity,
+                    unit: service.unit,
+                    price: service.price,
+                    total: quantity * service.price
+                };
+            }
+            
+            currentItems.push(item);
+            updateInvoiceDisplay();
+            
+            // Reset form
+            document.getElementById('quantity').value = '';
+        }
+        
+        function updateInvoiceDisplay() {
+            const container = document.getElementById('invoiceItems');
+            const totalEl = document.getElementById('totalAmount');
+            
+            if (currentItems.length === 0) {
+                container.innerHTML = '';
+                totalEl.textContent = 'Total: $0.00';
+                return;
+            }
+            
+            container.innerHTML = '<div class="card">' + 
+                currentItems.map((item, index) => `
+                    <div class="service-item">
+                        <div class="service-item-info">
+                            <div class="service-name">${item.service}${item.subService ? ' - ' + item.subService : ''}</div>
+                            <div class="service-details">${item.quantity} ${item.unit}${item.quantity > 1 ? 's' : ''} × $${item.price.toFixed(2)}</div>
+                        </div>
+                        <div>
+                            <div class="service-price">$${item.total.toFixed(2)}</div>
+                            <button class="btn-danger" onclick="removeItem(${index})">Remove</button>
+                        </div>
+                    </div>
+                `).join('') + 
+            '</div>';
+            
+            const total = currentItems.reduce((sum, item) => sum + item.total, 0);
+            totalEl.textContent = `Total: $${total.toFixed(2)}`;
+        }
+        
+        function removeItem(index) {
+            currentItems.splice(index, 1);
+            updateInvoiceDisplay();
+        }
+        
+        async function saveInvoice() {
+            const clientName = document.getElementById('clientName').value;
+            
+            if (!clientName) {
+                alert('Please enter client name');
+                return;
+            }
+            
+            if (currentItems.length === 0) {
+                alert('Please add at least one item');
+                return;
+            }
+            
+            const total = currentItems.reduce((sum, item) => sum + item.total, 0);
+            
+            const invoice = {
+                clientName,
+                items: currentItems,
+                total: total
+            };
+            
+            try {
+                const response = await fetch(`${API_URL}/api/invoices`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(invoice)
+                });
+                
+                if (response.ok) {
+                    alert('Invoice saved successfully!');
+                    currentItems = [];
+                    document.getElementById('clientName').value = '';
+                    updateInvoiceDisplay();
+                    loadInvoices();
+                }
+            } catch (error) {
+                console.error('Error saving invoice:', error);
+                alert('Error saving invoice');
+            }
+        }
+        
+        async function loadInvoices() {
+            try {
+                const response = await fetch(`${API_URL}/api/invoices`);
+                const invoices = await response.json();
+                displayInvoices(invoices);
+            } catch (error) {
+                console.error('Error loading invoices:', error);
+            }
+        }
+        
+        function displayInvoices(invoices) {
+            const container = document.getElementById('invoicesList');
+            
+            if (invoices.length === 0) {
+                container.innerHTML = '<div class="card"><div class="empty-state">No invoices yet</div></div>';
+                return;
+            }
+            
+            container.innerHTML = invoices.map(invoice => `
+                <div class="invoice-card">
+                    <div class="invoice-header">
+                        <div>
+                            <strong>${invoice.clientName}</strong>
+                            <div class="invoice-date">${new Date(invoice.created_at).toLocaleDateString()}</div>
+                        </div>
+                        <div class="invoice-total">$${invoice.total.toFixed(2)}</div>
+                    </div>
+                    ${invoice.items.map(item => `
+                        <div class="service-details">
+                            ${item.service}${item.subService ? ' - ' + item.subService : ''}: ${item.quantity} ${item.unit}${item.quantity > 1 ? 's' : ''}
+                        </div>
+                    `).join('')}
+                    <div class="action-buttons">
+                        <button class="btn-success" onclick="downloadPDF('${invoice.id}')">Download PDF</button>
+                        <button class="btn-danger" onclick="deleteInvoice('${invoice.id}')">Delete</button>
+                    </div>
+                </div>
+            `).reverse().join('');
+        }
+        
+        async function deleteInvoice(id) {
+            if (!confirm('Are you sure you want to delete this invoice?')) return;
+            
+            try {
+                await fetch(`${API_URL}/api/invoices/${id}`, { method: 'DELETE' });
+                loadInvoices();
+            } catch (error) {
+                console.error('Error deleting invoice:', error);
+            }
+        }
+        async function downloadPDF(id) {
+            try {
+                const response = await fetch(`${API_URL}/api/invoices/${id}/pdf`);
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `invoice_${id}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } catch (error) {
+                console.error('Error downloading PDF:', error);
+                alert('Error downloading PDF');
+            }
+        }
+        
+        function populateSettings() {
+            const container = document.getElementById('settingsList');
+            let html = '';
+            
+            for (const [key, service] of Object.entries(services)) {
+                if (key === 'joinery') {
+                    html += `
+                        <div class="settings-item">
+                            <div class="settings-label">${service.name}</div>
+                            ${Object.entries(service.items).map(([itemKey, item]) => `
+                                <div class="joinery-item">
+                                    <div class="settings-row">
+                                        <span>${item.name} (per ${item.unit})</span>
+                                        <input type="number" class="small-input" value="${item.price}" 
+                                               data-service="joinery" data-item="${itemKey}" step="0.01" min="0">
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="settings-item">
+                            <div class="settings-row">
+                                <span class="settings-label">${service.name} (per ${service.unit})</span>
+                                <input type="number" class="small-input" value="${service.price}" 
+                                       data-service="${key}" step="0.01" min="0">
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        async function saveSettings() {
+            const inputs = document.querySelectorAll('#settingsList input');
+            
+            inputs.forEach(input => {
+                const serviceKey = input.dataset.service;
+                const itemKey = input.dataset.item;
+                const price = parseFloat(input.value);
+                
+                if (itemKey) {
+                    services[serviceKey].items[itemKey].price = price;
+                } else {
+                    services[serviceKey].price = price;
+                }
+            });
+            
+            try {
+                const response = await fetch(`${API_URL}/api/services`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(services)
+                });
+                
+                if (response.ok) {
+                    alert('Prices updated successfully!');
+                    loadServices();
+                }
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                alert('Error saving settings');
+            }
+        }
+        
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tab).classList.add('active');
+            
+            if (tab === 'invoices') {
+                loadInvoices();
+            }
+        }
+        
+        // Initialize
+        loadServices();
+    </script>
+</body>
+</html>
