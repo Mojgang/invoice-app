@@ -1,0 +1,21 @@
+[
+  {
+    "clientName": "Christine",
+    "clientNumber": "",
+    "projectNotes": "",
+    "items": [
+      {
+        "name": "Base 1000 double",
+        "quantity": 1,
+        "unit": "meter",
+        "price": 960,
+        "total": 960,
+        "notes": "Test"
+      }
+    ],
+    "total": 960,
+    "id": "0f208a9e-d292-4a86-82d6-c05ea2f49d62",
+    "quote_number": "JN5401",
+    "created_at": "2025-11-23T20:11:04.943449+11:00"
+  }
+]

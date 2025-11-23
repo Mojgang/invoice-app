@@ -1,0 +1,42 @@
+{
+  "electrician": {
+    "name": "Electrician",
+    "unit": "hour",
+    "price": 85.0
+  },
+  "plumber": {
+    "name": "Plumber",
+    "unit": "hour",
+    "price": 90.0
+  },
+  "demolition": {
+    "name": "Demolition",
+    "unit": "hour",
+    "price": 75.0
+  },
+  "joinery": {
+    "name": "Joinery",
+    "items": {
+      "splashback": {
+        "name": "Splashback",
+        "unit": "meter",
+        "price": 120.0
+      },
+      "cabinet": {
+        "name": "Cabinet",
+        "unit": "meter",
+        "price": 350.0
+      },
+      "benchtop": {
+        "name": "Benchtop",
+        "unit": "meter",
+        "price": 280.0
+      },
+      "shelving": {
+        "name": "Shelving",
+        "unit": "meter",
+        "price": 95.0
+      }
+    }
+  }
+}

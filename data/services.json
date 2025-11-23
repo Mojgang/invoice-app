@@ -1,0 +1,672 @@
+{
+  "appliances": {
+    "items": {
+      "cooktop_electric": {
+        "name": "Cooktop - Electric",
+        "price": 780,
+        "unit": "unit"
+      },
+      "cooktop_gas": {
+        "name": "Cooktop - Gas",
+        "price": 850,
+        "unit": "unit"
+      },
+      "dishwasher": {
+        "name": "Dishwasher",
+        "price": 950,
+        "unit": "unit"
+      },
+      "fridge": {
+        "name": "Fridge",
+        "price": 2500,
+        "unit": "unit"
+      },
+      "ice_maker": {
+        "name": "Ice-maker connection",
+        "price": 280,
+        "unit": "unit"
+      },
+      "microwave": {
+        "name": "Built-in Microwave",
+        "price": 550,
+        "unit": "unit"
+      },
+      "oven": {
+        "name": "Oven",
+        "price": 1200,
+        "unit": "unit"
+      },
+      "rangehood_ducted": {
+        "name": "Rangehood - Ducted",
+        "price": 650,
+        "unit": "unit"
+      },
+      "rangehood_recirc": {
+        "name": "Rangehood - Recirculating",
+        "price": 580,
+        "unit": "unit"
+      },
+      "water_point": {
+        "name": "Fridge waterpoint",
+        "price": 320,
+        "unit": "unit"
+      }
+    },
+    "name": "D) Appliances Package"
+  },
+  "benchtop": {
+    "items": {
+      "cooktop_cutout": {
+        "name": "Cooktop cutout",
+        "price": 220,
+        "unit": "unit"
+      },
+      "engineered_stone": {
+        "name": "Engineered Stone",
+        "price": 650,
+        "unit": "meter"
+      },
+      "labour_only": {
+        "name": "Labour-only installation",
+        "price": 450,
+        "unit": "job"
+      },
+      "laminate_premium": {
+        "name": "Laminate - Premium",
+        "price": 350,
+        "unit": "meter"
+      },
+      "laminate_standard": {
+        "name": "Laminate - Standard",
+        "price": 280,
+        "unit": "meter"
+      },
+      "natural_stone": {
+        "name": "Natural Stone",
+        "price": 850,
+        "unit": "meter"
+      },
+      "porcelain": {
+        "name": "Porcelain/Sintered",
+        "price": 780,
+        "unit": "meter"
+      },
+      "sink_cutout": {
+        "name": "Sink cutout",
+        "price": 180,
+        "unit": "unit"
+      },
+      "stainless": {
+        "name": "Stainless Steel",
+        "price": 720,
+        "unit": "meter"
+      },
+      "timber": {
+        "name": "Timber",
+        "price": 550,
+        "unit": "meter"
+      }
+    },
+    "name": "B) Benchtop Package"
+  },
+  "cabinetry": {
+    "categories": {
+      "base_cabinets": {
+        "items": {
+          "base_1000": {
+            "name": "Base 1000 double",
+            "price": 960,
+            "unit": "meter"
+          },
+          "base_300": {
+            "name": "Base 300 single",
+            "price": 450,
+            "unit": "unit"
+          },
+          "base_400": {
+            "name": "Base 400 single",
+            "price": 520,
+            "unit": "unit"
+          },
+          "base_500": {
+            "name": "Base 500 single",
+            "price": 590,
+            "unit": "unit"
+          },
+          "base_600": {
+            "name": "Base 600 double",
+            "price": 680,
+            "unit": "unit"
+          },
+          "base_700": {
+            "name": "Base 700 double",
+            "price": 750,
+            "unit": "unit"
+          },
+          "base_800": {
+            "name": "Base 800 double",
+            "price": 820,
+            "unit": "unit"
+          },
+          "base_900": {
+            "name": "Base 900 double",
+            "price": 890,
+            "unit": "unit"
+          },
+          "blind_corner": {
+            "name": "Blind corner cabinet",
+            "price": 920,
+            "unit": "unit"
+          },
+          "corner_l": {
+            "name": "Corner L-shape cabinet",
+            "price": 890,
+            "unit": "unit"
+          },
+          "drawer_2": {
+            "name": "2 Drawer bank",
+            "price": 680,
+            "unit": "unit"
+          },
+          "drawer_3": {
+            "name": "3 Drawer bank",
+            "price": 780,
+            "unit": "unit"
+          },
+          "drawer_4": {
+            "name": "4 Drawer bank",
+            "price": 880,
+            "unit": "unit"
+          },
+          "island_base": {
+            "name": "Island base cabinet",
+            "price": 650,
+            "unit": "unit"
+          },
+          "island_drawer": {
+            "name": "Island base with drawers",
+            "price": 780,
+            "unit": "unit"
+          },
+          "island_microwave": {
+            "name": "Island base with microwave",
+            "price": 850,
+            "unit": "unit"
+          },
+          "pot_drawer": {
+            "name": "Pot drawer",
+            "price": 720,
+            "unit": "unit"
+          }
+        },
+        "name": "Base Cabinets"
+      },
+      "finishing": {
+        "items": {
+          "end_panel_base": {
+            "name": "End panel - base/small",
+            "price": 180,
+            "unit": "unit"
+          },
+          "end_panel_tall": {
+            "name": "End panel - tall",
+            "price": 280,
+            "unit": "unit"
+          },
+          "kickboard": {
+            "name": "Kickboard",
+            "price": 45,
+            "unit": "meter"
+          },
+          "open_shelf_feature": {
+            "name": "Open shelf feature unit",
+            "price": 420,
+            "unit": "unit"
+          },
+          "pivot_door": {
+            "name": "Pivot Door",
+            "price": 350,
+            "unit": "unit"
+          }
+        },
+        "name": "Finishing Items"
+      },
+      "hardware": {
+        "items": {
+          "bin_double": {
+            "name": "Pull-out bin double",
+            "price": 180,
+            "unit": "unit"
+          },
+          "bin_single": {
+            "name": "Pull-out bin single",
+            "price": 120,
+            "unit": "unit"
+          },
+          "blind_pullout": {
+            "name": "Blind-corner pullout",
+            "price": 380,
+            "unit": "unit"
+          },
+          "corner_carousel": {
+            "name": "Corner carousel",
+            "price": 320,
+            "unit": "unit"
+          },
+          "cutlery_insert": {
+            "name": "Cutlery insert",
+            "price": 65,
+            "unit": "unit"
+          },
+          "extra_shelf": {
+            "name": "Extra shelf",
+            "price": 45,
+            "unit": "unit"
+          },
+          "handles_premium": {
+            "name": "Premium handles",
+            "price": 35,
+            "unit": "unit"
+          },
+          "handles_standard": {
+            "name": "Standard handles",
+            "price": 12,
+            "unit": "unit"
+          },
+          "pantry_pullout": {
+            "name": "Pantry pullout",
+            "price": 280,
+            "unit": "unit"
+          },
+          "push_open": {
+            "name": "Push-to-open hardware",
+            "price": 25,
+            "unit": "unit"
+          },
+          "soft_close": {
+            "name": "Soft-close upgrade",
+            "price": 18,
+            "unit": "unit"
+          },
+          "spice_insert": {
+            "name": "Spice insert",
+            "price": 85,
+            "unit": "unit"
+          },
+          "utensil_insert": {
+            "name": "Utensil insert",
+            "price": 75,
+            "unit": "unit"
+          }
+        },
+        "name": "Hardware & Internals"
+      },
+      "tall_cabinets": {
+        "items": {
+          "appliance_bifold": {
+            "name": "Appliance Cupboard Bi-fold",
+            "price": 1380,
+            "unit": "unit"
+          },
+          "appliance_pocket": {
+            "name": "Appliance Cupboard Pocket Door",
+            "price": 1450,
+            "unit": "unit"
+          },
+          "appliance_pocket_bifold": {
+            "name": "Appliance Pocket + Bi-fold",
+            "price": 1550,
+            "unit": "unit"
+          },
+          "pantry_300": {
+            "name": "Pantry 300mm",
+            "price": 980,
+            "unit": "unit"
+          },
+          "pantry_400": {
+            "name": "Pantry 400mm",
+            "price": 1080,
+            "unit": "unit"
+          },
+          "pantry_450": {
+            "name": "Pantry 450mm",
+            "price": 1130,
+            "unit": "unit"
+          },
+          "pantry_500": {
+            "name": "Pantry 500mm",
+            "price": 1180,
+            "unit": "unit"
+          },
+          "pantry_600": {
+            "name": "Pantry 600mm",
+            "price": 1280,
+            "unit": "unit"
+          },
+          "pantry_700": {
+            "name": "Pantry 700mm",
+            "price": 1380,
+            "unit": "unit"
+          },
+          "pantry_800": {
+            "name": "Pantry 800mm",
+            "price": 1480,
+            "unit": "unit"
+          },
+          "pantry_900": {
+            "name": "Pantry 900mm",
+            "price": 1580,
+            "unit": "unit"
+          }
+        },
+        "name": "Tall Cabinets"
+      },
+      "wall_cabinets": {
+        "items": {
+          "bifold_door": {
+            "name": "Bi-fold Door Wall Cabinet",
+            "price": 780,
+            "unit": "unit"
+          },
+          "blind_corner_wall": {
+            "name": "Blind corner wall",
+            "price": 750,
+            "unit": "unit"
+          },
+          "corner_l_wall": {
+            "name": "Corner L-shape wall",
+            "price": 720,
+            "unit": "unit"
+          },
+          "liftup_600": {
+            "name": "Lift-up 600",
+            "price": 580,
+            "unit": "unit"
+          },
+          "liftup_800": {
+            "name": "Lift-up 800",
+            "price": 680,
+            "unit": "unit"
+          },
+          "liftup_900": {
+            "name": "Lift-up 900",
+            "price": 740,
+            "unit": "unit"
+          },
+          "microwave_wall": {
+            "name": "Microwave wall unit",
+            "price": 650,
+            "unit": "unit"
+          },
+          "open_shelf": {
+            "name": "Open shelf wall unit",
+            "price": 380,
+            "unit": "unit"
+          },
+          "pocket_door": {
+            "name": "Wall Cabinet Pocket Door",
+            "price": 820,
+            "unit": "unit"
+          },
+          "wall_1000": {
+            "name": "Wall 1000",
+            "price": 740,
+            "unit": "unit"
+          },
+          "wall_1200": {
+            "name": "Wall 1200",
+            "price": 860,
+            "unit": "unit"
+          },
+          "wall_300": {
+            "name": "Wall 300",
+            "price": 320,
+            "unit": "unit"
+          },
+          "wall_350": {
+            "name": "Wall 350",
+            "price": 350,
+            "unit": "unit"
+          },
+          "wall_400": {
+            "name": "Wall 400",
+            "price": 380,
+            "unit": "unit"
+          },
+          "wall_450": {
+            "name": "Wall 450",
+            "price": 410,
+            "unit": "unit"
+          },
+          "wall_500": {
+            "name": "Wall 500",
+            "price": 440,
+            "unit": "unit"
+          },
+          "wall_600_double": {
+            "name": "Wall 600 double",
+            "price": 520,
+            "unit": "unit"
+          },
+          "wall_600_single": {
+            "name": "Wall 600 single",
+            "price": 480,
+            "unit": "unit"
+          },
+          "wall_700": {
+            "name": "Wall 700",
+            "price": 560,
+            "unit": "unit"
+          },
+          "wall_750": {
+            "name": "Wall 750",
+            "price": 590,
+            "unit": "unit"
+          },
+          "wall_800": {
+            "name": "Wall 800",
+            "price": 620,
+            "unit": "unit"
+          },
+          "wall_900": {
+            "name": "Wall 900",
+            "price": 680,
+            "unit": "unit"
+          }
+        },
+        "name": "Wall Cabinets - 900H"
+      }
+    },
+    "name": "A) Cabinetry Package"
+  },
+  "project_management": {
+    "items": {
+      "contingency": {
+        "name": "Contingency allowance",
+        "price": 500,
+        "unit": "job"
+      },
+      "delivery": {
+        "name": "Delivery",
+        "price": 350,
+        "unit": "job"
+      },
+      "design_measure": {
+        "name": "Design & measure",
+        "price": 450,
+        "unit": "job"
+      },
+      "insurance": {
+        "name": "Home Warranty Insurance",
+        "price": 280,
+        "unit": "job"
+      },
+      "pm_full": {
+        "name": "Project management",
+        "price": 2500,
+        "unit": "job"
+      },
+      "travel": {
+        "name": "Travel surcharge",
+        "price": 150,
+        "unit": "job"
+      },
+      "warranty": {
+        "name": "10-year warranty",
+        "price": 0,
+        "unit": "job"
+      }
+    },
+    "name": "F) Project Management & Warranty"
+  },
+  "splashback": {
+    "items": {
+      "glass": {
+        "name": "Glass splashback",
+        "price": 280,
+        "unit": "sqm"
+      },
+      "stainless": {
+        "name": "Stainless steel",
+        "price": 320,
+        "unit": "sqm"
+      },
+      "stone": {
+        "name": "Stone/Porcelain",
+        "price": 350,
+        "unit": "sqm"
+      },
+      "tiled": {
+        "name": "Tiled splashback",
+        "price": 120,
+        "unit": "sqm"
+      }
+    },
+    "name": "C) Splashback Package"
+  },
+  "trades": {
+    "items": {
+      "benchtop_removal": {
+        "name": "Benchtop removal",
+        "price": 350,
+        "unit": "job"
+      },
+      "cabinet_install": {
+        "name": "Cabinet installation",
+        "price": 2800,
+        "unit": "job"
+      },
+      "demolition_full": {
+        "name": "Full kitchen demolition",
+        "price": 1200,
+        "unit": "job"
+      },
+      "dishwasher_connect": {
+        "name": "Dishwasher connection",
+        "price": 280,
+        "unit": "unit"
+      },
+      "downlights": {
+        "name": "Downlights",
+        "price": 120,
+        "unit": "unit"
+      },
+      "electrical_points": {
+        "name": "New electrical points",
+        "price": 180,
+        "unit": "point"
+      },
+      "gyprock_patch": {
+        "name": "Gyprock patching",
+        "price": 180,
+        "unit": "area"
+      },
+      "insinkerator": {
+        "name": "InSinkErator install",
+        "price": 380,
+        "unit": "unit"
+      },
+      "led_lighting": {
+        "name": "LED lighting",
+        "price": 95,
+        "unit": "point"
+      },
+      "oven_circuit": {
+        "name": "Oven/cooktop circuit",
+        "price": 380,
+        "unit": "unit"
+      },
+      "pelmet_lighting": {
+        "name": "Pelmet lighting",
+        "price": 280,
+        "unit": "run"
+      },
+      "pendants": {
+        "name": "Pendant lights",
+        "price": 150,
+        "unit": "unit"
+      },
+      "plastering": {
+        "name": "Plastering/finishing",
+        "price": 280,
+        "unit": "area"
+      },
+      "plumbing_relocation": {
+        "name": "Plumbing relocation",
+        "price": 450,
+        "unit": "point"
+      },
+      "plumbing_roughin": {
+        "name": "Plumbing rough-in",
+        "price": 850,
+        "unit": "job"
+      },
+      "pot_filler": {
+        "name": "Pot filler install",
+        "price": 550,
+        "unit": "unit"
+      },
+      "rangehood_point": {
+        "name": "Rangehood point",
+        "price": 220,
+        "unit": "unit"
+      },
+      "skip_hire": {
+        "name": "Skip bin hire",
+        "price": 420,
+        "unit": "unit"
+      },
+      "stone_install": {
+        "name": "Stone installation",
+        "price": 450,
+        "unit": "job"
+      },
+      "stone_template": {
+        "name": "Stone templating",
+        "price": 350,
+        "unit": "job"
+      },
+      "tap_sink": {
+        "name": "Tap & sink install",
+        "price": 320,
+        "unit": "unit"
+      },
+      "tile_removal": {
+        "name": "Tile removal",
+        "price": 45,
+        "unit": "sqm"
+      },
+      "tiling_labour": {
+        "name": "Tiling labour",
+        "price": 65,
+        "unit": "sqm"
+      },
+      "water_filter": {
+        "name": "Water filter install",
+        "price": 420,
+        "unit": "unit"
+      }
+    },
+    "name": "E) Trades Package"
+  }
+}
