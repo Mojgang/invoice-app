@@ -442,4 +442,5 @@ Area Manager"""
 '''
 if __name__ == '__main__':
     # Use threaded=True and disable reloader to avoid Mac binding issues
-    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)'''
+    app.run(host='0.0.0.0', port=10000, debug=False, threaded=True)
+    '''

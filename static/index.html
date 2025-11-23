@@ -177,25 +177,26 @@
             transform: rotate(180deg);
         }
         
-        .category-content {
+        .category-content { 
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.3s ease;
         }
-        
+
         .category-content.open {
-            max-height: 5000px;
+            max-height: 550px; /* height limit so items scroll instead of expanding forever */
+            overflow-y: auto;
+            padding-right: 8px;
         }
-        
-        .subcategory-title {
-            background: #f5f5f7;
-            padding: 10px;
-            margin-top: 10px;
-            border-radius: 6px;
-            font-weight: 600;
-            color: #1d1d1f;
-            font-size: 14px;
+
+        /* Subcategory scrolling */
+        .subcategory-title + .item-row,
+        .subcategory-title + div {
+            max-height: 300px;
+            overflow-y: auto;
         }
+
+
         
         .settings-category {
             background: #f5f5f7;
@@ -203,6 +204,11 @@
             border-radius: 8px;
             margin-bottom: 15px;
         }
+
+        #categoriesContainer {
+            padding-bottom: 80px;
+        }
+
         
         .settings-category-header {
             display: flex;
