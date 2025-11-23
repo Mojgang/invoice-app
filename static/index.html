@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice Generator</title>
+    <title>Kitchen Quotation</title>
     <style>
         * {
             margin: 0;
@@ -14,45 +14,46 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: #f5f5f7;
-            padding: 20px;
+            padding: 10px;
             padding-bottom: 100px;
         }
         
         .container {
-            max-width: 600px;
+            max-width: 800px;
             margin: 0 auto;
         }
         
         .header {
             background: white;
-            padding: 20px;
+            padding: 15px;
             border-radius: 12px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
         h1 {
             color: #1d1d1f;
-            font-size: 28px;
-            margin-bottom: 10px;
+            font-size: 24px;
+            margin-bottom: 8px;
         }
         
         .tabs {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+            gap: 8px;
+            margin-bottom: 15px;
+            overflow-x: auto;
         }
         
         .tab {
-            flex: 1;
-            padding: 12px;
+            padding: 10px 16px;
             background: white;
             border: none;
-            border-radius: 10px;
-            font-size: 16px;
+            border-radius: 8px;
+            font-size: 14px;
             cursor: pointer;
             transition: all 0.3s;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            white-space: nowrap;
         }
         
         .tab.active {
@@ -70,46 +71,53 @@
         
         .card {
             background: white;
-            padding: 20px;
+            padding: 15px;
             border-radius: 12px;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
         .input-group {
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
         
         label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             color: #1d1d1f;
             font-weight: 500;
+            font-size: 14px;
         }
         
-        input, select {
+        input, select, textarea {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             border: 1px solid #d2d2d7;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 14px;
             background: #f5f5f7;
+            font-family: inherit;
         }
         
-        input:focus, select:focus {
+        input:focus, select:focus, textarea:focus {
             outline: none;
             border-color: #007aff;
             background: white;
         }
         
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        
         .btn {
             width: 100%;
-            padding: 14px;
+            padding: 12px;
             background: #007aff;
             color: white;
             border: none;
             border-radius: 10px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
@@ -130,7 +138,7 @@
             width: auto;
             margin-right: 10px;
         }
-
+        
         .btn-danger {
             background: #ff3b30;
             padding: 8px 16px;
@@ -138,46 +146,235 @@
             width: auto;
         }
         
-        .service-item {
+        .category-section {
+            margin-bottom: 15px;
+        }
+        
+        .category-header {
+            background: #007aff;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px;
+            font-weight: 600;
+            font-size: 15px;
+            user-select: none;
+        }
+        
+        .category-header:active {
+            opacity: 0.8;
+        }
+        
+        .category-arrow {
+            transition: transform 0.3s;
+            font-size: 18px;
+        }
+        
+        .category-arrow.open {
+            transform: rotate(180deg);
+        }
+        
+        .category-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .category-content.open {
+            max-height: 5000px;
+        }
+        
+        .subcategory-title {
             background: #f5f5f7;
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }
-        
-        .service-item-info {
-            flex: 1;
-        }
-        
-        .service-name {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 6px;
             font-weight: 600;
             color: #1d1d1f;
-            margin-bottom: 4px;
-        }
-        
-        .service-details {
-            color: #86868b;
             font-size: 14px;
         }
         
-        .service-price {
+        .settings-category {
+            background: #f5f5f7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .settings-category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .settings-category-title {
             font-weight: 600;
-            color: #007aff;
+            font-size: 16px;
+            color: #1d1d1f;
+        }
+        
+        .settings-item-row {
+            display: grid;
+            grid-template-columns: 2fr 100px 80px 60px;
+            gap: 8px;
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+        
+        .settings-input {
+            padding: 6px 8px;
+            font-size: 13px;
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 13px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .btn-add {
+            background: #34c759;
+            color: white;
+        }
+        
+        .btn-remove {
+            background: #ff3b30;
+            color: white;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
             font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .subcategory-header {
+            background: #e5e5ea;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+            margin-top: 10px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+            background: #f5f5f7;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            color: #1d1d1f;
+            font-size: 14px;
+        }
+        
+        .item-row {
+            display: grid;
+            grid-template-columns: 1fr 80px 60px;
+            gap: 8px;
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            align-items: start;
+        }
+        
+        .item-name {
+            font-size: 14px;
+            color: #1d1d1f;
+            padding-top: 8px;
+        }
+        
+        .item-price {
+            font-size: 12px;
+            color: #86868b;
+        }
+        
+        .item-input {
+            padding: 6px 8px;
+            font-size: 14px;
+            text-align: center;
+        }
+        
+        .item-notes-toggle {
+            background: #f5f5f7;
+            border: 1px solid #d2d2d7;
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            text-align: center;
+            color: #007aff;
+            width: 100%;
+            margin-top: 4px;
+        }
+        
+        .item-notes-input {
+            margin-top: 6px;
+            display: none;
+            font-size: 13px;
+            padding: 6px;
+            min-height: 40px;
+        }
+        
+        .item-notes-input.show {
+            display: block;
         }
         
         .total {
             background: #007aff;
             color: white;
-            padding: 20px;
+            padding: 15px;
             border-radius: 12px;
             text-align: center;
-            font-size: 24px;
+            font-size: 20px;
             font-weight: 600;
-            margin-top: 20px;
+            margin-top: 15px;
+            position: sticky;
+            bottom: 10px;
+            z-index: 100;
         }
         
         .invoice-card {
@@ -197,45 +394,30 @@
         
         .invoice-date {
             color: #86868b;
-            font-size: 14px;
+            font-size: 13px;
         }
         
         .invoice-total {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 600;
             color: #007aff;
         }
         
-        .settings-item {
-            background: #f5f5f7;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 10px;
+        .invoice-item {
+            padding: 6px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
         }
         
-        .settings-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
+        .invoice-item:last-child {
+            border-bottom: none;
         }
         
-        .settings-label {
-            font-weight: 500;
-            color: #1d1d1f;
-        }
-        
-        .settings-price {
-            font-weight: 600;
-            color: #007aff;
-        }
-        
-        .joinery-item {
-            margin-left: 20px;
-            margin-top: 8px;
-            padding: 8px;
-            background: white;
-            border-radius: 6px;
+        .item-note {
+            color: #86868b;
+            font-size: 12px;
+            font-style: italic;
+            margin-top: 2px;
         }
         
         .empty-state {
@@ -250,251 +432,551 @@
             margin-top: 10px;
         }
         
-        .small-input {
-            width: 80px;
-            padding: 8px;
-            font-size: 14px;
+        .add-button {
+            background: #34c759;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        
+        .selected-items {
+            background: #f5f5f7;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        
+        .selected-item {
+            padding: 6px 0;
+            display: flex;
+            justify-content: space-between;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>📋 Invoice Generator</h1>
+            <h1>🏗️ Kitchen Quotation</h1>
         </div>
         
         <div class="tabs">
-            <button class="tab active" onclick="switchTab('create')">Create Invoice</button>
-            <button class="tab" onclick="switchTab('invoices')">Invoices</button>
-            <button class="tab" onclick="switchTab('settings')">Settings</button>
+            <button class="tab active" onclick="switchTab('create')">Create Quote</button>
+            <button class="tab" onclick="switchTab('invoices')">Quotes</button>
+            <button class="tab" onclick="switchTab('summary')">Job Summary</button>
+            <button class="tab" onclick="switchTab('company')">Company Info</button>
+            <button class="tab" onclick="switchTab('settings')">Services</button>
         </div>
         
-        <!-- Create Invoice Tab -->
+        <!-- Create Quote Tab -->
         <div id="create" class="tab-content active">
             <div class="card">
                 <div class="input-group">
-                    <label>Client Name</label>
+                    <label>Client Name *</label>
                     <input type="text" id="clientName" placeholder="Enter client name">
                 </div>
                 
                 <div class="input-group">
-                    <label>Service Type</label>
-                    <select id="serviceType" onchange="handleServiceChange()">
-                        <option value="">Select a service</option>
-                    </select>
-                </div>
-                
-                <div id="joineryOptions" style="display: none;">
-                    <div class="input-group">
-                        <label>Joinery Item</label>
-                        <select id="joineryItem">
-                            <option value="">Select item</option>
-                        </select>
-                    </div>
+                    <label>Client Number</label>
+                    <input type="text" id="clientNumber" placeholder="Enter client number (optional)">
                 </div>
                 
                 <div class="input-group">
-                    <label id="quantityLabel">Quantity/Size</label>
-                    <input type="number" id="quantity" placeholder="Enter quantity" step="0.01" min="0">
+                    <label>Project Notes (Optional)</label>
+                    <textarea id="projectNotes" placeholder="Any additional project details..."></textarea>
                 </div>
-                
-                <button class="btn" onclick="addItem()">Add Item</button>
             </div>
             
-            <div id="invoiceItems"></div>
+            <div id="categoriesContainer"></div>
             
             <div class="total" id="totalAmount">Total: $0.00</div>
             
-            <button class="btn btn-secondary" onclick="saveInvoice()" style="margin-top: 15px;">Save Invoice</button>
+            <div class="card">
+                <button class="btn btn-secondary" id="saveButton" onclick="saveInvoice()">Save Quotation</button>
+                <button class="btn" style="background: #ff3b30; margin-top: 10px; display: none;" id="cancelEditButton" onclick="cancelEdit()">Cancel Edit</button>
+            </div>
         </div>
         
-        <!-- Invoices Tab -->
+        <!-- Quotes Tab -->
         <div id="invoices" class="tab-content">
             <div id="invoicesList"></div>
+        </div>
+        
+        <!-- Job Summary Tab -->
+        <div id="summary" class="tab-content">
+            <div class="card">
+                <h2 style="margin-bottom: 15px; font-size: 18px;">Default Job Summary</h2>
+                <p style="color: #86868b; font-size: 13px; margin-bottom: 15px;">
+                    This text will be included in every PDF quotation after the description section.
+                </p>
+                <div class="input-group">
+                    <textarea id="jobSummaryText" style="min-height: 400px; font-size: 13px; line-height: 1.6;"></textarea>
+                </div>
+                <button class="btn" onclick="saveJobSummary()">Save Job Summary</button>
+            </div>
+        </div>
+        
+        <!-- Company Info Tab -->
+        <div id="company" class="tab-content">
+            <div class="card">
+                <h2 style="margin-bottom: 15px; font-size: 18px;">Company Information</h2>
+                <p style="color: #86868b; font-size: 13px; margin-bottom: 15px;">
+                    This information appears on all quotes and PDFs.
+                </p>
+                
+                <div class="input-group">
+                    <label>Quote Number Prefix</label>
+                    <input type="text" id="quotePrefix" placeholder="JN">
+                </div>
+                
+                <div class="input-group">
+                    <label>Next Quote Number</label>
+                    <input type="number" id="nextQuoteNumber" placeholder="5041">
+                </div>
+                
+                <div class="input-group">
+                    <label>ABN</label>
+                    <input type="text" id="abn" placeholder="81 633 419 762">
+                </div>
+                
+                <div class="input-group">
+                    <label>Company Name</label>
+                    <input type="text" id="companyName" placeholder="CHARRETTE PTY LTD">
+                </div>
+                
+                <div class="input-group">
+                    <label>Phone</label>
+                    <input type="text" id="phone" placeholder="0492 979 776">
+                </div>
+                
+                <div class="input-group">
+                    <label>Email</label>
+                    <input type="email" id="email" placeholder="sales@charrette.com.au">
+                </div>
+                
+                <div class="input-group">
+                    <label>Address</label>
+                    <input type="text" id="address" placeholder="10 Atchison Street, St Leonards, NSW 2065">
+                </div>
+                
+                <div class="input-group">
+                    <label>Area Manager</label>
+                    <input type="text" id="areaManager" placeholder="MAHSA GHANAVATI">
+                </div>
+                
+                <div class="input-group">
+                    <label>Company Description</label>
+                    <textarea id="companyDescription" style="min-height: 100px;" placeholder="At Charrette, we specialise in..."></textarea>
+                </div>
+                
+                <h3 style="margin-top: 20px; margin-bottom: 15px; font-size: 16px;">Payment Information</h3>
+                
+                <div class="input-group">
+                    <label>Payment Terms</label>
+                    <textarea id="paymentTerms" style="min-height: 80px;" placeholder="To confirm your order..."></textarea>
+                </div>
+                
+                <div class="input-group">
+                    <label>Bank Account Name</label>
+                    <input type="text" id="bankAccountName" placeholder="Charrette Pty Ltd">
+                </div>
+                
+                <div class="input-group">
+                    <label>BSB</label>
+                    <input type="text" id="bankBsb" placeholder="082-356">
+                </div>
+                
+                <div class="input-group">
+                    <label>Account Number</label>
+                    <input type="text" id="bankAccount" placeholder="44-045-1091">
+                </div>
+                
+                <button class="btn" onclick="saveCompanySettings()">Save Company Info</button>
+                
+                <h3 style="margin-top: 25px; margin-bottom: 10px; font-size: 16px;">Company Logo</h3>
+                <p style="color: #86868b; font-size: 13px; margin-bottom: 15px;">
+                    To add your logo: Upload a file named <strong>logo.jpg</strong> to the <code>data/</code> folder on your server.
+                    Recommended size: 600x300 pixels (PNG format).
+                </p>
+            </div>
         </div>
         
         <!-- Settings Tab -->
         <div id="settings" class="tab-content">
             <div class="card">
-                <h2 style="margin-bottom: 15px;">Service Prices</h2>
-                <div id="settingsList"></div>
-                <button class="btn" onclick="saveSettings()">Save Prices</button>
+                <h2 style="margin-bottom: 15px; font-size: 18px;">Service Management</h2>
+                <p style="color: #86868b; font-size: 13px; margin-bottom: 15px;">
+                    Manage your services, categories, and pricing. Changes will apply to all new quotes.
+                </p>
+                <button class="btn" style="background: #34c759; margin-bottom: 15px;" onclick="showAddCategoryModal()">+ Add New Category</button>
+                <div id="settingsContainer"></div>
+                <button class="btn" onclick="saveSettings()">Save All Changes</button>
+            </div>
+        </div>
+        
+        <!-- Add Category Modal -->
+        <div id="addCategoryModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">Add New Category</div>
+                <div class="input-group">
+                    <label>Category Key (lowercase, no spaces)</label>
+                    <input type="text" id="newCategoryKey" placeholder="e.g., painting">
+                </div>
+                <div class="input-group">
+                    <label>Category Name</label>
+                    <input type="text" id="newCategoryName" placeholder="e.g., G) Painting Package">
+                </div>
+                <div class="input-group">
+                    <label>Type</label>
+                    <select id="newCategoryType">
+                        <option value="items">Multiple Items</option>
+                        <option value="categories">With Subcategories</option>
+                        <option value="simple">Simple (hourly rate)</option>
+                    </select>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn" onclick="addNewCategory()">Add Category</button>
+                    <button class="btn" style="background: #86868b;" onclick="closeModal('addCategoryModal')">Cancel</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Add Item Modal -->
+        <div id="addItemModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">Add New Item</div>
+                <input type="hidden" id="addItemServiceKey">
+                <input type="hidden" id="addItemCategoryKey">
+                <div class="input-group">
+                    <label>Item Key (lowercase, no spaces)</label>
+                    <input type="text" id="newItemKey" placeholder="e.g., wall_600">
+                </div>
+                <div class="input-group">
+                    <label>Item Name</label>
+                    <input type="text" id="newItemName" placeholder="e.g., Wall Cabinet 600mm">
+                </div>
+                <div class="input-group">
+                    <label>Price</label>
+                    <input type="number" id="newItemPrice" placeholder="0.00" step="0.01" min="0">
+                </div>
+                <div class="input-group">
+                    <label>Unit</label>
+                    <select id="newItemUnit">
+                        <option value="unit">Unit</option>
+                        <option value="hour">Hour</option>
+                        <option value="meter">Meter</option>
+                        <option value="sqm">Square Meter</option>
+                        <option value="job">Job</option>
+                        <option value="point">Point</option>
+                        <option value="run">Run</option>
+                        <option value="area">Area</option>
+                    </select>
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn" onclick="addNewItem()">Add Item</button>
+                    <button class="btn" style="background: #86868b;" onclick="closeModal('addItemModal')">Cancel</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Add Subcategory Modal -->
+        <div id="addSubcategoryModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">Add New Subcategory</div>
+                <input type="hidden" id="addSubcategoryServiceKey">
+                <div class="input-group">
+                    <label>Subcategory Key (lowercase, no spaces)</label>
+                    <input type="text" id="newSubcategoryKey" placeholder="e.g., wall_cabinets">
+                </div>
+                <div class="input-group">
+                    <label>Subcategory Name</label>
+                    <input type="text" id="newSubcategoryName" placeholder="e.g., Wall Cabinets">
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn" onclick="addNewSubcategory()">Add Subcategory</button>
+                    <button class="btn" style="background: #86868b;" onclick="closeModal('addSubcategoryModal')">Cancel</button>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
         let services = {};
-        let currentItems = [];
+        let selectedItems = {};
+        let editingInvoiceId = null;
         const API_URL = window.location.origin;
         
-        // Load services on page load
         async function loadServices() {
             try {
                 const response = await fetch(`${API_URL}/api/services`);
                 services = await response.json();
-                populateServiceSelect();
-                populateSettings();
+                console.log('Services loaded:', services); // Debug
+                renderCategories();
+                updateTotal();
             } catch (error) {
                 console.error('Error loading services:', error);
             }
         }
         
-        function populateServiceSelect() {
-            const select = document.getElementById('serviceType');
-            select.innerHTML = '<option value="">Select a service</option>';
+        function renderCategories() {
+            const container = document.getElementById('categoriesContainer');
+            container.innerHTML = '';
             
-            for (const [key, service] of Object.entries(services)) {
-                const option = document.createElement('option');
-                option.value = key;
-                option.textContent = service.name;
-                select.appendChild(option);
-            }
-        }
-        
-        function handleServiceChange() {
-            const serviceType = document.getElementById('serviceType').value;
-            const joineryOptions = document.getElementById('joineryOptions');
-            const quantityLabel = document.getElementById('quantityLabel');
+            // Define the correct order for kitchen packages
+            const orderedKeys = [
+                'cabinetry',
+                'benchtop', 
+                'splashback',
+                'appliances',
+                'trades',
+                'project_management',
+                'electrician',
+                'plumber',
+                'demolition'
+            ];
             
-            if (serviceType === 'joinery') {
-                joineryOptions.style.display = 'block';
-                const select = document.getElementById('joineryItem');
-                select.innerHTML = '<option value="">Select item</option>';
-                
-                for (const [key, item] of Object.entries(services.joinery.items)) {
-                    const option = document.createElement('option');
-                    option.value = key;
-                    option.textContent = `${item.name} - $${item.price}/${item.unit}`;
-                    select.appendChild(option);
-                }
-                quantityLabel.textContent = 'Size (meters)';
-            } else {
-                joineryOptions.style.display = 'none';
-                if (serviceType && services[serviceType]) {
-                    quantityLabel.textContent = `Quantity (${services[serviceType].unit}s)`;
+            // Render in correct order
+            for (const serviceKey of orderedKeys) {
+                if (!services[serviceKey]) continue;
+                const service = services[serviceKey];
+                if (service.categories) {
+                    // Kitchen-style service with categories
+                    const section = document.createElement('div');
+                    section.className = 'card category-section';
+                    
+                    const header = document.createElement('div');
+                    header.className = 'category-header';
+                    header.innerHTML = `
+                        <span>${service.name}</span>
+                        <span class="category-arrow">▼</span>
+                    `;
+                    header.onclick = () => toggleCategory(serviceKey);
+                    
+                    const content = document.createElement('div');
+                    content.className = 'category-content';
+                    content.id = `category-${serviceKey}`;
+                    
+                    for (const [catKey, category] of Object.entries(service.categories)) {
+                        const subTitle = document.createElement('div');
+                        subTitle.className = 'subcategory-title';
+                        subTitle.textContent = category.name;
+                        content.appendChild(subTitle);
+                        
+                        for (const [itemKey, item] of Object.entries(category.items)) {
+                            const fullKey = `${serviceKey}.${catKey}.${itemKey}`;
+                            const row = createItemRow(fullKey, item);
+                            content.appendChild(row);
+                        }
+                    }
+                    
+                    section.appendChild(header);
+                    section.appendChild(content);
+                    container.appendChild(section);
+                    
+                } else if (service.items) {
+                    // Service with direct items (no subcategories)
+                    const section = document.createElement('div');
+                    section.className = 'card category-section';
+                    
+                    const header = document.createElement('div');
+                    header.className = 'category-header';
+                    header.innerHTML = `
+                        <span>${service.name}</span>
+                        <span class="category-arrow">▼</span>
+                    `;
+                    header.onclick = () => toggleCategory(serviceKey);
+                    
+                    const content = document.createElement('div');
+                    content.className = 'category-content';
+                    content.id = `category-${serviceKey}`;
+                    
+                    for (const [itemKey, item] of Object.entries(service.items)) {
+                        const fullKey = `${serviceKey}.${itemKey}`;
+                        const row = createItemRow(fullKey, item);
+                        content.appendChild(row);
+                    }
+                    
+                    section.appendChild(header);
+                    section.appendChild(content);
+                    container.appendChild(section);
                 } else {
-                    quantityLabel.textContent = 'Quantity/Size';
+                    // Simple service (hourly rate)
+                    const section = document.createElement('div');
+                    section.className = 'card';
+                    
+                    const fullKey = serviceKey;
+                    const row = createItemRow(fullKey, service);
+                    section.appendChild(row);
+                    container.appendChild(section);
                 }
             }
         }
         
-        function addItem() {
-            const serviceType = document.getElementById('serviceType').value;
-            const quantity = parseFloat(document.getElementById('quantity').value);
+        function createItemRow(fullKey, item) {
+            const row = document.createElement('div');
+            row.className = 'item-row';
             
-            if (!serviceType || !quantity) {
-                alert('Please select a service and enter quantity');
-                return;
+            const nameCell = document.createElement('div');
+            nameCell.innerHTML = `
+                <div class="item-name">${item.name}</div>
+                <div class="item-price">$${item.price.toFixed(2)} per ${item.unit}</div>
+            `;
+            
+            const qtyInput = document.createElement('input');
+            qtyInput.type = 'number';
+            qtyInput.className = 'item-input';
+            qtyInput.placeholder = 'Qty';
+            qtyInput.step = item.unit === 'meter' || item.unit === 'sqm' ? '0.1' : '1';
+            qtyInput.min = '0';
+            qtyInput.value = selectedItems[fullKey]?.quantity || '';
+            qtyInput.oninput = (e) => updateItem(fullKey, item, e.target.value);
+            
+            const addBtn = document.createElement('button');
+            addBtn.className = 'add-button';
+            addBtn.textContent = '+ Note';
+            addBtn.onclick = () => toggleNotes(fullKey);
+            
+            const notesContainer = document.createElement('div');
+            notesContainer.style.gridColumn = '1 / -1';
+            
+            const notesInput = document.createElement('textarea');
+            notesInput.className = 'item-notes-input';
+            notesInput.id = `notes-${fullKey}`;
+            notesInput.placeholder = 'Optional notes for this item...';
+            notesInput.value = selectedItems[fullKey]?.notes || '';
+            if (selectedItems[fullKey]?.notes) {
+                notesInput.classList.add('show');
             }
+            notesInput.oninput = (e) => updateItemNotes(fullKey, e.target.value);
             
-            let item = {};
+            notesContainer.appendChild(notesInput);
             
-            if (serviceType === 'joinery') {
-                const joineryItemKey = document.getElementById('joineryItem').value;
-                if (!joineryItemKey) {
-                    alert('Please select a joinery item');
-                    return;
-                }
-                const joineryItem = services.joinery.items[joineryItemKey];
-                item = {
-                    service: 'Joinery',
-                    subService: joineryItem.name,
-                    quantity: quantity,
-                    unit: joineryItem.unit,
-                    price: joineryItem.price,
-                    total: quantity * joineryItem.price
+            row.appendChild(nameCell);
+            row.appendChild(qtyInput);
+            row.appendChild(addBtn);
+            row.appendChild(notesContainer);
+            
+            return row;
+        }
+        
+        function toggleCategory(key) {
+            const content = document.getElementById(`category-${key}`);
+            const arrow = content.previousElementSibling.querySelector('.category-arrow');
+            
+            if (content.classList.contains('open')) {
+                content.classList.remove('open');
+                arrow.classList.remove('open');
+            } else {
+                content.classList.add('open');
+                arrow.classList.add('open');
+            }
+        }
+        
+        function toggleNotes(key) {
+            const notesInput = document.getElementById(`notes-${key}`);
+            if (notesInput.classList.contains('show')) {
+                notesInput.classList.remove('show');
+            } else {
+                notesInput.classList.add('show');
+                notesInput.focus();
+            }
+        }
+        
+        function updateItem(key, item, quantity) {
+            const qty = parseFloat(quantity);
+            
+            if (qty > 0) {
+                selectedItems[key] = {
+                    name: item.name,
+                    quantity: qty,
+                    unit: item.unit,
+                    price: item.price,
+                    total: qty * item.price,
+                    notes: selectedItems[key]?.notes || ''
                 };
             } else {
-                const service = services[serviceType];
-                item = {
-                    service: service.name,
-                    quantity: quantity,
-                    unit: service.unit,
-                    price: service.price,
-                    total: quantity * service.price
-                };
+                delete selectedItems[key];
             }
             
-            currentItems.push(item);
-            updateInvoiceDisplay();
-            
-            // Reset form
-            document.getElementById('quantity').value = '';
+            updateTotal();
         }
         
-        function updateInvoiceDisplay() {
-            const container = document.getElementById('invoiceItems');
-            const totalEl = document.getElementById('totalAmount');
-            
-            if (currentItems.length === 0) {
-                container.innerHTML = '';
-                totalEl.textContent = 'Total: $0.00';
-                return;
+        function updateItemNotes(key, notes) {
+            if (selectedItems[key]) {
+                selectedItems[key].notes = notes;
             }
-            
-            container.innerHTML = '<div class="card">' + 
-                currentItems.map((item, index) => `
-                    <div class="service-item">
-                        <div class="service-item-info">
-                            <div class="service-name">${item.service}${item.subService ? ' - ' + item.subService : ''}</div>
-                            <div class="service-details">${item.quantity} ${item.unit}${item.quantity > 1 ? 's' : ''} × $${item.price.toFixed(2)}</div>
-                        </div>
-                        <div>
-                            <div class="service-price">$${item.total.toFixed(2)}</div>
-                            <button class="btn-danger" onclick="removeItem(${index})">Remove</button>
-                        </div>
-                    </div>
-                `).join('') + 
-            '</div>';
-            
-            const total = currentItems.reduce((sum, item) => sum + item.total, 0);
-            totalEl.textContent = `Total: $${total.toFixed(2)}`;
         }
         
-        function removeItem(index) {
-            currentItems.splice(index, 1);
-            updateInvoiceDisplay();
+        function updateTotal() {
+            const total = Object.values(selectedItems).reduce((sum, item) => sum + item.total, 0);
+            document.getElementById('totalAmount').textContent = `Total: $${total.toFixed(2)}`;
         }
         
         async function saveInvoice() {
             const clientName = document.getElementById('clientName').value;
+            const clientNumber = document.getElementById('clientNumber').value;
+            const projectNotes = document.getElementById('projectNotes').value;
             
             if (!clientName) {
                 alert('Please enter client name');
                 return;
             }
             
-            if (currentItems.length === 0) {
+            if (Object.keys(selectedItems).length === 0) {
                 alert('Please add at least one item');
                 return;
             }
             
-            const total = currentItems.reduce((sum, item) => sum + item.total, 0);
+            const total = Object.values(selectedItems).reduce((sum, item) => sum + item.total, 0);
             
             const invoice = {
                 clientName,
-                items: currentItems,
+                clientNumber,
+                projectNotes,
+                items: Object.values(selectedItems),
                 total: total
             };
             
             try {
-                const response = await fetch(`${API_URL}/api/invoices`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(invoice)
-                });
-                
-                if (response.ok) {
-                    alert('Invoice saved successfully!');
-                    currentItems = [];
-                    document.getElementById('clientName').value = '';
-                    updateInvoiceDisplay();
-                    loadInvoices();
+                let response;
+                if (editingInvoiceId) {
+                    // Update existing invoice
+                    response = await fetch(`${API_URL}/api/invoices/${editingInvoiceId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(invoice)
+                    });
+                    
+                    if (response.ok) {
+                        alert('Quotation updated successfully!');
+                        editingInvoiceId = null;
+                    }
+                } else {
+                    // Create new invoice
+                    response = await fetch(`${API_URL}/api/invoices`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(invoice)
+                    });
+                    
+                    if (response.ok) {
+                        alert('Quotation saved successfully!');
+                    }
                 }
+                
+                selectedItems = {};
+                document.getElementById('clientName').value = '';
+                document.getElementById('projectNotes').value = '';
+                renderCategories();
+                updateTotal();
+                loadInvoices();
             } catch (error) {
                 console.error('Error saving invoice:', error);
-                alert('Error saving invoice');
+                alert('Error saving quotation');
             }
         }
         
@@ -512,7 +994,7 @@
             const container = document.getElementById('invoicesList');
             
             if (invoices.length === 0) {
-                container.innerHTML = '<div class="card"><div class="empty-state">No invoices yet</div></div>';
+                container.innerHTML = '<div class="card"><div class="empty-state">No quotations yet</div></div>';
                 return;
             }
             
@@ -521,17 +1003,24 @@
                     <div class="invoice-header">
                         <div>
                             <strong>${invoice.clientName}</strong>
+                            ${invoice.clientNumber ? `<div class="invoice-date">Client #: ${invoice.clientNumber}</div>` : ''}
                             <div class="invoice-date">${new Date(invoice.created_at).toLocaleDateString()}</div>
+                            ${invoice.quote_number ? `<div class="invoice-date">Quote: ${invoice.quote_number}</div>` : ''}
                         </div>
-                        <div class="invoice-total">$${invoice.total.toFixed(2)}</div>
+                        <div class="invoice-total">${invoice.total.toFixed(2)}</div>
                     </div>
-                    ${invoice.items.map(item => `
-                        <div class="service-details">
-                            ${item.service}${item.subService ? ' - ' + item.subService : ''}: ${item.quantity} ${item.unit}${item.quantity > 1 ? 's' : ''}
-                        </div>
-                    `).join('')}
+                    ${invoice.projectNotes ? `<div class="item-note" style="margin-bottom: 10px;">Project: ${invoice.projectNotes}</div>` : ''}
+                    <div style="max-height: 200px; overflow-y: auto;">
+                        ${invoice.items.map(item => `
+                            <div class="invoice-item">
+                                <strong>${item.name}</strong>: ${item.quantity} ${item.unit}${item.quantity > 1 ? 's' : ''} × $${item.price.toFixed(2)} = $${item.total.toFixed(2)}
+                                ${item.notes ? `<div class="item-note">Note: ${item.notes}</div>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
                     <div class="action-buttons">
                         <button class="btn-success" onclick="downloadPDF('${invoice.id}')">Download PDF</button>
+                        <button class="btn" style="background: #ff9500; padding: 8px 16px; font-size: 14px; width: auto; margin-right: 10px;" onclick="editInvoice('${invoice.id}')">Edit</button>
                         <button class="btn-danger" onclick="deleteInvoice('${invoice.id}')">Delete</button>
                     </div>
                 </div>
@@ -539,7 +1028,7 @@
         }
         
         async function deleteInvoice(id) {
-            if (!confirm('Are you sure you want to delete this invoice?')) return;
+            if (!confirm('Are you sure you want to delete this quotation?')) return;
             
             try {
                 await fetch(`${API_URL}/api/invoices/${id}`, { method: 'DELETE' });
@@ -548,6 +1037,108 @@
                 console.error('Error deleting invoice:', error);
             }
         }
+        
+        async function editInvoice(id) {
+            try {
+                const response = await fetch(`${API_URL}/api/invoices`);
+                const invoices = await response.json();
+                const invoice = invoices.find(inv => inv.id === id);
+                
+                if (!invoice) {
+                    alert('Invoice not found');
+                    return;
+                }
+                
+                // Set editing mode
+                editingInvoiceId = id;
+                
+                // Update button text
+                document.getElementById('saveButton').textContent = 'Update Quotation';
+                document.getElementById('cancelEditButton').style.display = 'block';
+                
+                // Fill in client info
+                document.getElementById('clientName').value = invoice.clientName;
+                document.getElementById('clientNumber').value = invoice.clientNumber || '';
+                document.getElementById('projectNotes').value = invoice.projectNotes || '';
+                
+                // Clear current selections
+                selectedItems = {};
+                
+                // Load invoice items into selectedItems
+                // We need to reconstruct the keys from the item data
+                for (const item of invoice.items) {
+                    // Try to find matching item in services to get the key
+                    const key = findItemKey(item);
+                    if (key) {
+                        selectedItems[key] = {
+                            name: item.name,
+                            quantity: item.quantity,
+                            unit: item.unit,
+                            price: item.price,
+                            total: item.total,
+                            notes: item.notes || ''
+                        };
+                    }
+                }
+                
+                // Re-render the form with populated data
+                renderCategories();
+                updateTotal();
+                
+                // Switch to create tab
+                switchTab('create');
+                
+                // Scroll to top
+                window.scrollTo(0, 0);
+                
+                alert('Quote loaded for editing. Make changes and click "Update Quotation" to save.');
+            } catch (error) {
+                console.error('Error loading invoice for edit:', error);
+                alert('Error loading quote for editing');
+            }
+        }
+        
+        function cancelEdit() {
+            editingInvoiceId = null;
+            selectedItems = {};
+            document.getElementById('clientName').value = '';
+            document.getElementById('clientNumber').value = '';
+            document.getElementById('projectNotes').value = '';
+            document.getElementById('saveButton').textContent = 'Save Quotation';
+            document.getElementById('cancelEditButton').style.display = 'none';
+            renderCategories();
+            updateTotal();
+        }
+        
+        function findItemKey(item) {
+            // Search through services to find matching item
+            for (const [serviceKey, service] of Object.entries(services)) {
+                if (service.categories) {
+                    // Kitchen-style service with categories
+                    for (const [catKey, category] of Object.entries(service.categories)) {
+                        for (const [itemKey, serviceItem] of Object.entries(category.items)) {
+                            if (serviceItem.name === item.name && serviceItem.price === item.price) {
+                                return `${serviceKey}.${catKey}.${itemKey}`;
+                            }
+                        }
+                    }
+                } else if (service.items) {
+                    // Service with direct items
+                    for (const [itemKey, serviceItem] of Object.entries(service.items)) {
+                        if (serviceItem.name === item.name && serviceItem.price === item.price) {
+                            return `${serviceKey}.${itemKey}`;
+                        }
+                    }
+                } else {
+                    // Simple service
+                    if (service.name === item.name && service.price === item.price) {
+                        return serviceKey;
+                    }
+                }
+            }
+            return null;
+        }
+        
         async function downloadPDF(id) {
             try {
                 const response = await fetch(`${API_URL}/api/invoices/${id}/pdf`);
@@ -555,7 +1146,7 @@
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `invoice_${id}.pdf`;
+                a.download = `quotation_${id}.pdf`;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
@@ -566,54 +1157,283 @@
             }
         }
         
-        function populateSettings() {
-            const container = document.getElementById('settingsList');
-            let html = '';
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             
-            for (const [key, service] of Object.entries(services)) {
-                if (key === 'joinery') {
-                    html += `
-                        <div class="settings-item">
-                            <div class="settings-label">${service.name}</div>
-                            ${Object.entries(service.items).map(([itemKey, item]) => `
-                                <div class="joinery-item">
-                                    <div class="settings-row">
-                                        <span>${item.name} (per ${item.unit})</span>
-                                        <input type="number" class="small-input" value="${item.price}" 
-                                               data-service="joinery" data-item="${itemKey}" step="0.01" min="0">
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    `;
-                } else {
-                    html += `
-                        <div class="settings-item">
-                            <div class="settings-row">
-                                <span class="settings-label">${service.name} (per ${service.unit})</span>
-                                <input type="number" class="small-input" value="${service.price}" 
-                                       data-service="${key}" step="0.01" min="0">
-                            </div>
-                        </div>
-                    `;
+            // Find and activate the correct tab button
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                if ((tabName === 'create' && tab.textContent.includes('Create')) ||
+                    (tabName === 'invoices' && tab.textContent.includes('Quotes')) ||
+                    (tabName === 'summary' && tab.textContent.includes('Summary')) ||
+                    (tabName === 'company' && tab.textContent.includes('Company')) ||
+                    (tabName === 'settings' && tab.textContent.includes('Services'))) {
+                    tab.classList.add('active');
+                }
+            });
+            
+            document.getElementById(tabName).classList.add('active');
+            
+            if (tabName === 'invoices') {
+                loadInvoices();
+            } else if (tabName === 'summary') {
+                loadJobSummary();
+            } else if (tabName === 'company') {
+                loadCompanySettings();
+            } else if (tabName === 'settings') {
+                renderSettings();
+            }
+        }
+        
+        async function loadJobSummary() {
+            try {
+                const response = await fetch(`${API_URL}/api/job-summary`);
+                const data = await response.json();
+                document.getElementById('jobSummaryText').value = data.summary;
+            } catch (error) {
+                console.error('Error loading job summary:', error);
+            }
+        }
+        
+        async function saveJobSummary() {
+            const summary = document.getElementById('jobSummaryText').value;
+            
+            try {
+                const response = await fetch(`${API_URL}/api/job-summary`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ summary })
+                });
+                
+                if (response.ok) {
+                    alert('Job summary saved successfully!');
+                }
+            } catch (error) {
+                console.error('Error saving job summary:', error);
+                alert('Error saving job summary');
+            }
+        }
+        
+        // Company Settings
+        async function loadCompanySettings() {
+            try {
+                const response = await fetch(`${API_URL}/api/company-settings`);
+                const settings = await response.json();
+                
+                document.getElementById('quotePrefix').value = settings.quote_prefix || 'JN';
+                document.getElementById('nextQuoteNumber').value = settings.next_quote_number || 5041;
+                document.getElementById('abn').value = settings.abn || '';
+                document.getElementById('companyName').value = settings.company_name || '';
+                document.getElementById('phone').value = settings.phone || '';
+                document.getElementById('email').value = settings.email || '';
+                document.getElementById('address').value = settings.address || '';
+                document.getElementById('areaManager').value = settings.area_manager || '';
+                document.getElementById('companyDescription').value = settings.company_description || '';
+                document.getElementById('paymentTerms').value = settings.payment_terms || '';
+                document.getElementById('bankAccountName').value = settings.bank_account_name || '';
+                document.getElementById('bankBsb').value = settings.bank_bsb || '';
+                document.getElementById('bankAccount').value = settings.bank_account || '';
+            } catch (error) {
+                console.error('Error loading company settings:', error);
+            }
+        }
+        
+        async function saveCompanySettings() {
+            const settings = {
+                quote_prefix: document.getElementById('quotePrefix').value,
+                next_quote_number: parseInt(document.getElementById('nextQuoteNumber').value),
+                abn: document.getElementById('abn').value,
+                company_name: document.getElementById('companyName').value,
+                phone: document.getElementById('phone').value,
+                email: document.getElementById('email').value,
+                address: document.getElementById('address').value,
+                area_manager: document.getElementById('areaManager').value,
+                company_description: document.getElementById('companyDescription').value,
+                payment_terms: document.getElementById('paymentTerms').value,
+                bank_account_name: document.getElementById('bankAccountName').value,
+                bank_bsb: document.getElementById('bankBsb').value,
+                bank_account: document.getElementById('bankAccount').value
+            };
+            
+            try {
+                const response = await fetch(`${API_URL}/api/company-settings`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+                
+                if (response.ok) {
+                    alert('Company information saved successfully!');
+                }
+            } catch (error) {
+                console.error('Error saving company settings:', error);
+                alert('Error saving company information');
+            }
+        }
+        
+        // Settings Management
+        function renderSettings() {
+            const container = document.getElementById('settingsContainer');
+            container.innerHTML = '';
+            
+            // Check if services are loaded
+            if (Object.keys(services).length === 0) {
+                container.innerHTML = '<p style="color: #86868b; text-align: center; padding: 20px;">Loading services...</p>';
+                return;
+            }
+            
+            const orderedKeys = [
+                'cabinetry', 'benchtop', 'splashback', 'appliances', 
+                'trades', 'project_management', 'electrician', 'plumber', 'demolition'
+            ];
+            
+            // Also add any keys that aren't in the ordered list
+            const allKeys = [...orderedKeys];
+            for (const key of Object.keys(services)) {
+                if (!allKeys.includes(key)) {
+                    allKeys.push(key);
                 }
             }
             
-            container.innerHTML = html;
+            for (const serviceKey of allKeys) {
+                if (!services[serviceKey]) continue;
+                const service = services[serviceKey];
+                
+                const section = document.createElement('div');
+                section.className = 'settings-category';
+                
+                const header = document.createElement('div');
+                header.className = 'settings-category-header';
+                header.innerHTML = `
+                    <div class="settings-category-title">${service.name}</div>
+                    <button class="btn-small btn-remove" onclick="removeCategory('${serviceKey}')">Remove Category</button>
+                `;
+                section.appendChild(header);
+                
+                if (service.categories) {
+                    // Has subcategories
+                    for (const [catKey, category] of Object.entries(service.categories)) {
+                        const subHeader = document.createElement('div');
+                        subHeader.className = 'subcategory-header';
+                        subHeader.innerHTML = `
+                            <span>${category.name}</span>
+                            <div>
+                                <button class="btn-small btn-add" onclick="showAddItemModal('${serviceKey}', '${catKey}')">+ Item</button>
+                                <button class="btn-small btn-remove" onclick="removeSubcategory('${serviceKey}', '${catKey}')">Remove</button>
+                            </div>
+                        `;
+                        section.appendChild(subHeader);
+                        
+                        for (const [itemKey, item] of Object.entries(category.items)) {
+                            section.appendChild(createSettingsItemRow(serviceKey, catKey, itemKey, item));
+                        }
+                    }
+                    
+                    const addSubBtn = document.createElement('button');
+                    addSubBtn.className = 'btn-small btn-add';
+                    addSubBtn.textContent = '+ Add Subcategory';
+                    addSubBtn.style.marginTop = '10px';
+                    addSubBtn.onclick = () => showAddSubcategoryModal(serviceKey);
+                    section.appendChild(addSubBtn);
+                    
+                } else if (service.items) {
+                    // Direct items
+                    for (const [itemKey, item] of Object.entries(service.items)) {
+                        section.appendChild(createSettingsItemRow(serviceKey, null, itemKey, item));
+                    }
+                    
+                    const addBtn = document.createElement('button');
+                    addBtn.className = 'btn-small btn-add';
+                    addBtn.textContent = '+ Add Item';
+                    addBtn.style.marginTop = '10px';
+                    addBtn.onclick = () => showAddItemModal(serviceKey, null);
+                    section.appendChild(addBtn);
+                    
+                } else {
+                    // Simple service
+                    section.appendChild(createSettingsItemRow(serviceKey, null, null, service));
+                }
+                
+                container.appendChild(section);
+            }
+        }
+        
+        function createSettingsItemRow(serviceKey, catKey, itemKey, item) {
+            const row = document.createElement('div');
+            row.className = 'settings-item-row';
+            
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.className = 'settings-input';
+            nameInput.value = item.name;
+            nameInput.dataset.serviceKey = serviceKey;
+            nameInput.dataset.catKey = catKey || '';
+            nameInput.dataset.itemKey = itemKey || '';
+            nameInput.dataset.field = 'name';
+            
+            const priceInput = document.createElement('input');
+            priceInput.type = 'number';
+            priceInput.className = 'settings-input';
+            priceInput.value = item.price;
+            priceInput.step = '0.01';
+            priceInput.min = '0';
+            priceInput.dataset.serviceKey = serviceKey;
+            priceInput.dataset.catKey = catKey || '';
+            priceInput.dataset.itemKey = itemKey || '';
+            priceInput.dataset.field = 'price';
+            
+            const unitSelect = document.createElement('select');
+            unitSelect.className = 'settings-input';
+            unitSelect.innerHTML = `
+                <option value="unit">Unit</option>
+                <option value="hour">Hour</option>
+                <option value="meter">Meter</option>
+                <option value="sqm">SQM</option>
+                <option value="job">Job</option>
+                <option value="point">Point</option>
+                <option value="run">Run</option>
+                <option value="area">Area</option>
+            `;
+            unitSelect.value = item.unit;
+            unitSelect.dataset.serviceKey = serviceKey;
+            unitSelect.dataset.catKey = catKey || '';
+            unitSelect.dataset.itemKey = itemKey || '';
+            unitSelect.dataset.field = 'unit';
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'btn-small btn-remove';
+            removeBtn.textContent = 'X';
+            removeBtn.onclick = () => removeItem(serviceKey, catKey, itemKey);
+            
+            row.appendChild(nameInput);
+            row.appendChild(priceInput);
+            row.appendChild(unitSelect);
+            row.appendChild(removeBtn);
+            
+            return row;
         }
         
         async function saveSettings() {
-            const inputs = document.querySelectorAll('#settingsList input');
+            // Collect all changes from inputs
+            const inputs = document.querySelectorAll('.settings-input');
             
             inputs.forEach(input => {
-                const serviceKey = input.dataset.service;
-                const itemKey = input.dataset.item;
-                const price = parseFloat(input.value);
+                const serviceKey = input.dataset.serviceKey;
+                const catKey = input.dataset.catKey;
+                const itemKey = input.dataset.itemKey;
+                const field = input.dataset.field;
+                const value = input.type === 'number' ? parseFloat(input.value) : input.value;
                 
-                if (itemKey) {
-                    services[serviceKey].items[itemKey].price = price;
+                if (catKey && itemKey) {
+                    // Update item in category
+                    services[serviceKey].categories[catKey].items[itemKey][field] = value;
+                } else if (itemKey) {
+                    // Update direct item
+                    services[serviceKey].items[itemKey][field] = value;
                 } else {
-                    services[serviceKey].price = price;
+                    // Update simple service
+                    services[serviceKey][field] = value;
                 }
             });
             
@@ -625,8 +1445,8 @@
                 });
                 
                 if (response.ok) {
-                    alert('Prices updated successfully!');
-                    loadServices();
+                    alert('Settings saved successfully!');
+                    await loadServices();
                 }
             } catch (error) {
                 console.error('Error saving settings:', error);
@@ -634,16 +1454,149 @@
             }
         }
         
-        function switchTab(tab) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        function showAddCategoryModal() {
+            document.getElementById('addCategoryModal').classList.add('show');
+        }
+        
+        function showAddItemModal(serviceKey, catKey) {
+            document.getElementById('addItemServiceKey').value = serviceKey;
+            document.getElementById('addItemCategoryKey').value = catKey || '';
+            document.getElementById('addItemModal').classList.add('show');
+        }
+        
+        function showAddSubcategoryModal(serviceKey) {
+            document.getElementById('addSubcategoryServiceKey').value = serviceKey;
+            document.getElementById('addSubcategoryModal').classList.add('show');
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+            // Clear inputs
+            document.querySelectorAll(`#${modalId} input, #${modalId} select`).forEach(input => {
+                if (input.type !== 'hidden') input.value = '';
+            });
+        }
+        
+        function addNewCategory() {
+            const key = document.getElementById('newCategoryKey').value.trim();
+            const name = document.getElementById('newCategoryName').value.trim();
+            const type = document.getElementById('newCategoryType').value;
             
-            event.target.classList.add('active');
-            document.getElementById(tab).classList.add('active');
-            
-            if (tab === 'invoices') {
-                loadInvoices();
+            if (!key || !name) {
+                alert('Please fill in all fields');
+                return;
             }
+            
+            if (services[key]) {
+                alert('Category key already exists');
+                return;
+            }
+            
+            if (type === 'categories') {
+                services[key] = {
+                    name: name,
+                    categories: {}
+                };
+            } else if (type === 'items') {
+                services[key] = {
+                    name: name,
+                    items: {}
+                };
+            } else {
+                services[key] = {
+                    name: name,
+                    price: 0,
+                    unit: 'hour'
+                };
+            }
+            
+            closeModal('addCategoryModal');
+            renderSettings();
+        }
+        
+        function addNewItem() {
+            const serviceKey = document.getElementById('addItemServiceKey').value;
+            const catKey = document.getElementById('addItemCategoryKey').value;
+            const itemKey = document.getElementById('newItemKey').value.trim();
+            const name = document.getElementById('newItemName').value.trim();
+            const price = parseFloat(document.getElementById('newItemPrice').value);
+            const unit = document.getElementById('newItemUnit').value;
+            
+            if (!itemKey || !name || isNaN(price)) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            const newItem = { name, price, unit };
+            
+            if (catKey) {
+                if (services[serviceKey].categories[catKey].items[itemKey]) {
+                    alert('Item key already exists');
+                    return;
+                }
+                services[serviceKey].categories[catKey].items[itemKey] = newItem;
+            } else {
+                if (services[serviceKey].items[itemKey]) {
+                    alert('Item key already exists');
+                    return;
+                }
+                services[serviceKey].items[itemKey] = newItem;
+            }
+            
+            closeModal('addItemModal');
+            renderSettings();
+        }
+        
+        function addNewSubcategory() {
+            const serviceKey = document.getElementById('addSubcategoryServiceKey').value;
+            const subKey = document.getElementById('newSubcategoryKey').value.trim();
+            const name = document.getElementById('newSubcategoryName').value.trim();
+            
+            if (!subKey || !name) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            if (services[serviceKey].categories[subKey]) {
+                alert('Subcategory key already exists');
+                return;
+            }
+            
+            services[serviceKey].categories[subKey] = {
+                name: name,
+                items: {}
+            };
+            
+            closeModal('addSubcategoryModal');
+            renderSettings();
+        }
+        
+        function removeCategory(serviceKey) {
+            if (!confirm(`Are you sure you want to remove "${services[serviceKey].name}"? This will delete all its items.`)) {
+                return;
+            }
+            delete services[serviceKey];
+            renderSettings();
+        }
+        
+        function removeSubcategory(serviceKey, catKey) {
+            if (!confirm(`Are you sure you want to remove this subcategory? This will delete all its items.`)) {
+                return;
+            }
+            delete services[serviceKey].categories[catKey];
+            renderSettings();
+        }
+        
+        function removeItem(serviceKey, catKey, itemKey) {
+            if (catKey && itemKey) {
+                delete services[serviceKey].categories[catKey].items[itemKey];
+            } else if (itemKey) {
+                delete services[serviceKey].items[itemKey];
+            } else {
+                if (!confirm('This will remove the entire service. Continue?')) return;
+                delete services[serviceKey];
+            }
+            renderSettings();
         }
         
         // Initialize
