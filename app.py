@@ -387,8 +387,8 @@ def generate_pdf(invoice, settings):
             str(idx),
             Paragraph(name, styles['Normal']),
             f"{item['quantity']} {item['unit']}{'s' if item['quantity']>1 else ''}",
-            f"${item['price']:.2f}",
-            f"${item['total']:.2f}"
+            "",
+            ""
         ])
         if item.get('notes'):
             note_style = ParagraphStyle('note', parent=styles['Normal'], fontSize=9, textColor=colors.grey, fontName='Helvetica-Oblique')
@@ -443,4 +443,4 @@ Area Manager"""
 if __name__ == '__main__':
     # Use threaded=True and disable reloader to avoid Mac binding issues
     app.run(host='0.0.0.0', port=10000, debug=False, threaded=True)
-    '''
+'''
