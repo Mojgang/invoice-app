@@ -23,8 +23,6 @@ app = Flask(__name__, static_folder='static')
 CORS(app)
 import os
 import sys
-os.environ['SUPABASE_URL'] = 'https://iqqczpmvqiuqrtnzusqx.supabase.co'  # Assign a string value
-os.environ['SUPABASE_KEY'] = 'sb_publishable_7EhrzbtM43LQrNFCY019UQ_KKKjCino'  # Assign a string value
 
 
 raw_url = os.environ.get('SUPABASE_URL')
