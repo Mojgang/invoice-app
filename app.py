@@ -1,314 +1,183 @@
-from flask import Flask, request, jsonify, send_from_directory, send_file
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import json
 import os
 from datetime import datetime
 import uuid
-from reportlab.lib.pagesizes import letter, A4
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
-from reportlab.lib.units import inch, mm
-from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 import io
 import pytz
-from reportlab.platypus import SimpleDocTemplate, BaseDocTemplate, PageTemplate, Frame, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
+from supabase import create_client, Client
 
+# ReportLab imports
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.lib.units import mm
+from reportlab.lib.enums import TA_LEFT
+
+import requests
+from reportlab.lib.utils import ImageReader
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
 
-# Data storage files
-DATA_DIR = 'data'
-SERVICES_FILE = os.path.join(DATA_DIR, 'services.json')
-INVOICES_FILE = os.path.join(DATA_DIR, 'invoices.json')
-SETTINGS_FILE = os.path.join(DATA_DIR, 'company_settings.json')
+# Supabase setup
+SUPABASE_URL = 'https://iqqczpmvqiuqrtnzusqx.supabase.co'
+SUPABASE_KEY = "sb_publishable_7EhrzbtM43LQrNFCY019UQ_KKKjCino"
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# Helper to get setting or return default
+def get_db_setting(key, default_value):
+    try:
+        response = supabase.table('settings').select('value').eq('key', key).execute()
+        if response.data and len(response.data) > 0:
+            return response.data[0]['value']
+        return default_value
+    except Exception as e:
+        print(f"Error fetching {key}: {e}")
+        return default_value
 
-# Initialize default services if file doesn't exist
-def init_services():
-    default_services = {
-        "electrician": {
-            "name": "Electrician",
-            "unit": "hour",
-            "price": 85.00
-        },
-        "plumber": {
-            "name": "Plumber",
-            "unit": "hour",
-            "price": 90.00
-        },
-        "demolition": {
-            "name": "Demolition",
-            "unit": "hour",
-            "price": 75.00
-        },
-        "joinery": {
-            "name": "Joinery",
-            "items": {
-                "splashback": {
-                    "name": "Splashback",
-                    "unit": "meter",
-                    "price": 120.00
-                },
-                "cabinet": {
-                    "name": "Cabinet",
-                    "unit": "meter",
-                    "price": 350.00
-                },
-                "benchtop": {
-                    "name": "Benchtop",
-                    "unit": "meter",
-                    "price": 280.00
-                },
-                "shelving": {
-                    "name": "Shelving",
-                    "unit": "meter",
-                    "price": 95.00
-                }
-            }
-        }
-    }
-    
-    if not os.path.exists(SERVICES_FILE):
-        with open(SERVICES_FILE, 'w') as f:
-            json.dump(default_services, f, indent=2)
-    
-    if not os.path.exists(INVOICES_FILE):
-        with open(INVOICES_FILE, 'w') as f:
-            json.dump([], f)
+# --- API ROUTES ---
 
-init_services()
-
-# API Routes
 @app.route('/')
 def index():
-    return send_from_directory('static', 'index.html')
+    return app.send_static_file('index.html')
 
 @app.route('/api/services', methods=['GET'])
 def get_services():
-    with open(SERVICES_FILE, 'r') as f:
-        services = json.load(f)
+    # Default empty structure if DB is empty
+    defaults = {"electrician": {"name": "Electrician", "price": 85, "unit": "hour"}}
+    services = get_db_setting('services', defaults)
     return jsonify(services)
 
 @app.route('/api/services', methods=['PUT'])
 def update_services():
     services = request.json
-    with open(SERVICES_FILE, 'w') as f:
-        json.dump(services, f, indent=2)
+    supabase.table('settings').upsert({
+        'key': 'services',
+        'value': services,
+        'updated_at': datetime.now().isoformat()
+    }).execute()
     return jsonify({"message": "Services updated successfully"})
 
 @app.route('/api/invoices', methods=['GET'])
 def get_invoices():
-    with open(INVOICES_FILE, 'r') as f:
-        invoices = json.load(f)
-    return jsonify(invoices)
+    response = supabase.table('invoices').select('*').order('created_at', desc=True).execute()
+    return jsonify(response.data)
 
 @app.route('/api/invoices', methods=['POST'])
 def create_invoice():
     invoice = request.json
-    settings = get_next_quote_number()
     
-    # Generate quote number
-    quote_number = f"{settings['quote_prefix']}{settings['next_quote_number']}"
+    # 1. Get Company Settings for Quote Numbering
+    defaults = {'quote_prefix': 'JN', 'next_quote_number': 5401}
+    settings = get_db_setting('company_settings', defaults)
     
-    invoice['id'] = str(uuid.uuid4())
-    invoice['quote_number'] = quote_number
+    # 2. Generate Quote Number
+    quote_number = f"{settings.get('quote_prefix', 'JN')}{settings.get('next_quote_number', 5401)}"
+    invoice_id = str(uuid.uuid4())
     
-    # Use Australian Eastern Standard Time
+    # 3. Prepare Data
     aus_tz = pytz.timezone('Australia/Sydney')
-    invoice['created_at'] = datetime.now(aus_tz).isoformat()
+    now_iso = datetime.now(aus_tz).isoformat()
+
+    data = {
+        'id': invoice_id,
+        'quote_number': quote_number,
+        'client_name': invoice['clientName'],
+        'client_number': invoice.get('clientNumber', ''),
+        'project_notes': invoice.get('projectNotes', ''),
+        'items': invoice['items'],
+        'total': invoice['total'],
+        'created_at': now_iso
+    }
     
-    # Increment quote number for next time
-    increment_quote_number()
+    # 4. Insert Invoice
+    supabase.table('invoices').insert(data).execute()
     
-    with open(INVOICES_FILE, 'r') as f:
-        invoices = json.load(f)
+    # 5. Increment Quote Number
+    settings['next_quote_number'] = settings.get('next_quote_number', 5401) + 1
+    supabase.table('settings').upsert({
+        'key': 'company_settings',
+        'value': settings,
+        'updated_at': now_iso
+    }).execute()
     
-    invoices.append(invoice)
-    
-    with open(INVOICES_FILE, 'w') as f:
-        json.dump(invoices, f, indent=2)
-    
-    return jsonify(invoice), 201
+    return jsonify(data), 201
 
 @app.route('/api/invoices/<invoice_id>', methods=['DELETE'])
 def delete_invoice(invoice_id):
-    with open(INVOICES_FILE, 'r') as f:
-        invoices = json.load(f)
-    
-    invoices = [inv for inv in invoices if inv['id'] != invoice_id]
-    
-    with open(INVOICES_FILE, 'w') as f:
-        json.dump(invoices, f, indent=2)
-    
+    supabase.table('invoices').delete().eq('id', invoice_id).execute()
     return jsonify({"message": "Invoice deleted successfully"})
 
 @app.route('/api/invoices/<invoice_id>', methods=['PUT'])
 def update_invoice(invoice_id):
-    updated_invoice = request.json
-    
-    with open(INVOICES_FILE, 'r') as f:
-        invoices = json.load(f)
-    
-    # Find and update the invoice
-    for i, inv in enumerate(invoices):
-        if inv['id'] == invoice_id:
-            # Keep the original ID and created_at
-            updated_invoice['id'] = invoice_id
-            updated_invoice['created_at'] = inv['created_at']
-            updated_invoice['updated_at'] = datetime.now().isoformat()
-            invoices[i] = updated_invoice
-            break
-    
-    with open(INVOICES_FILE, 'w') as f:
-        json.dump(invoices, f, indent=2)
-    
-    return jsonify(updated_invoice)
+    invoice = request.json
+    data = {
+        'client_name': invoice['clientName'],
+        'client_number': invoice.get('clientNumber', ''),
+        'project_notes': invoice.get('projectNotes', ''),
+        'items': invoice['items'],
+        'total': invoice['total'],
+        'updated_at': datetime.now().isoformat()
+    }
+    supabase.table('invoices').update(data).eq('id', invoice_id).execute()
+    return jsonify({"message": "Invoice updated successfully"})
 
 @app.route('/api/job-summary', methods=['GET'])
 def get_job_summary():
-    summary_file = os.path.join(DATA_DIR, 'job_summary.txt')
-    
-    default_summary = """Job Summary
-
-This project includes the design, supply, and installation of a complete kitchen, tailored to your selections and specifications. The summary of work and materials is as follows:
-
-Materials & Finishes
-* Cabinetry: Choice of Melamine, Thermolaminate, or Polyurethane (Polyurethane / Poly) finishes for all cabinets, base units, wall units, and tall units.
-* Benchtops: Selected from laminate, engineered stone, natural stone, porcelain, timber, or stainless steel. Fabrication includes sink and cooktop cutouts.
-* Splashbacks: Options include tiled, glass, stone, or porcelain.
-* Hardware & Accessories: Includes handles, soft-close hinges and drawers, pull-out bins, pantry inserts, and corner solutions.
-* Doors & Special Features: Options include Pivot doors, Pocket doors, Bi-fold doors, and Lift-up units.
-
-Scope of Work
-1. Cabinetry Package: Supply and installation of all base, wall, tall, and island cabinets, including internal accessories and finishing details.
-2. Benchtop Package: Supply, fabrication, and installation of selected benchtops.
-3. Splashback Package: Supply and installation of splashback material as selected.
-4. Appliances Package (Optional): Supply of appliances (oven, cooktop, rangehood, dishwasher, microwave, fridge) – installation included separately in Trades.
-5. Trades Package: Full plumbing, electrical, tiling, stone, cabinet installation, demolition/site works, and Gyprock/plastering as required.
-6. Project Management & Warranty: Full project scheduling, delivery of cabinets and stone, 10-year kitchen warranty, lifetime hardware warranty, and insurance where applicable.
-
-Notes
-* All selections and measurements are confirmed with the client prior to order and installation.
-* Optional features such as LED lighting, decorative open shelving, and custom hardware can be included upon request.
-* Installation timelines will be provided after final selections are confirmed."""
-    
-    if not os.path.exists(summary_file):
-        with open(summary_file, 'w') as f:
-            f.write(default_summary)
-    
-    with open(summary_file, 'r') as f:
-        summary = f.read()
-    
-    return jsonify({"summary": summary})
+    # Note: We extract the 'text' field from the JSON object
+    data = get_db_setting('job_summary', {"text": "Default summary..."})
+    return jsonify({"summary": data.get('text', '')})
 
 @app.route('/api/job-summary', methods=['PUT'])
 def update_job_summary():
-    summary = request.json.get('summary', '')
-    summary_file = os.path.join(DATA_DIR, 'job_summary.txt')
-    
-    with open(summary_file, 'w') as f:
-        f.write(summary)
-    
+    summary_text = request.json.get('summary', '')
+    supabase.table('settings').upsert({
+        'key': 'job_summary',
+        'value': {"text": summary_text}, # Store as JSON
+        'updated_at': datetime.now().isoformat()
+    }).execute()
     return jsonify({"message": "Job summary updated successfully"})
 
 @app.route('/api/company-settings', methods=['GET'])
 def get_company_settings():
-    settings = get_next_quote_number()
+    settings = get_db_setting('company_settings', {})
     return jsonify(settings)
 
 @app.route('/api/company-settings', methods=['PUT'])
 def update_company_settings():
     settings = request.json
-    settings_file = os.path.join(DATA_DIR, 'company_settings.json')
-    
-    with open(settings_file, 'w') as f:
-        json.dump(settings, f, indent=2)
-    
+    supabase.table('settings').upsert({
+        'key': 'company_settings',
+        'value': settings,
+        'updated_at': datetime.now().isoformat()
+    }).execute()
     return jsonify({"message": "Company settings updated successfully"})
 
-def get_next_quote_number():
-    """
-    Loads quote numbering settings.
-    Creates default settings if file doesn't exist.
-    Returns:
-        {
-            "quote_prefix": "JN",
-            "next_quote_number": 5401,
-            ...
-        }
-    """
-    # Default settings
-    default_settings = {
-        "quote_prefix": "JN",
-        "next_quote_number": 5401,
-
-        # Allow other company fields to exist early on
-        "company_name": "Your Company",
-        "abn": "",
-        "phone": "",
-        "email": "",
-        "address": "",
-        "area_manager": "",
-        "company_description": "",
-        "payment_terms": "",
-        "bank_account_name": "",
-        "bank_bsb": "",
-        "bank_account": ""
-    }
-
-    # If settings file missing → create with defaults
-    if not os.path.exists(SETTINGS_FILE):
-        with open(SETTINGS_FILE, 'w') as f:
-            json.dump(default_settings, f, indent=2)
-        return default_settings
-
-    # Load existing settings
-    with open(SETTINGS_FILE, 'r') as f:
-        settings = json.load(f)
-
-    # Ensure missing fields are filled with defaults
-    updated = False
-    for key, value in default_settings.items():
-        if key not in settings:
-            settings[key] = value
-            updated = True
-
-    if updated:
-        with open(SETTINGS_FILE, 'w') as f:
-            json.dump(settings, f, indent=2)
-
-    return settings
-
-def increment_quote_number():
-    """
-    Increments the saved next_quote_number by 1.
-    """
-    settings = get_next_quote_number()
-    settings['next_quote_number'] += 1
-
-    with open(SETTINGS_FILE, 'w') as f:
-        json.dump(settings, f, indent=2)
+# --- PDF GENERATION ---
 
 @app.route('/api/invoices/<invoice_id>/pdf', methods=['GET'])
 def generate_pdf_route(invoice_id):
-    with open(INVOICES_FILE, 'r') as f:
-        invoices = json.load(f)
-    
-    invoice = next((inv for inv in invoices if inv['id'] == invoice_id), None)
-    
-    if not invoice:
+    # 1. Fetch Invoice
+    inv_res = supabase.table('invoices').select('*').eq('id', invoice_id).execute()
+    if not inv_res.data:
         return jsonify({"error": "Invoice not found"}), 404
+    invoice = inv_res.data[0]
     
-    # Get company settings
-    settings = get_next_quote_number()  # or your company_settings.json
+    # 2. Fetch Company Settings (for footer/header)
+    settings = get_db_setting('company_settings', {})
     
-    # Generate PDF
-    buffer = generate_pdf(invoice, settings)
+    # 3. Fetch Job Summary
+    summary_data = get_db_setting('job_summary', {"text": ""})
+    job_summary_text = summary_data.get('text', '')
+    
+    # 4. Generate PDF
+    buffer = generate_pdf(invoice, settings, job_summary_text)
     buffer.seek(0)
     
-    filename = f"quote_{invoice.get('quote_number', invoice['id'][:8])}_{invoice['clientName'].replace(' ', '_')}.pdf"
+    filename = f"quote_{invoice.get('quote_number', 'draft')}.pdf"
     
     return send_file(
         buffer,
@@ -317,16 +186,7 @@ def generate_pdf_route(invoice_id):
         download_name=filename
     )
 
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import mm
-from reportlab.lib.enums import TA_LEFT
-from reportlab.lib import colors
-import io
-import os
-from datetime import datetime
-
-def generate_pdf(invoice, settings):
+def generate_pdf(invoice, settings, job_summary_text):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4,
                             topMargin=20*mm, bottomMargin=25*mm,
@@ -337,69 +197,96 @@ def generate_pdf(invoice, settings):
 
     elements = []
 
-    # ===== Logo top-right =====
-    logo_path = os.path.join('data', 'logo.jpg')
+    # ===== LOGO LOGIC (Reads from static/logo.jpg) =====
+    # We construct the absolute path to ensure Render finds it
+    logo_path = os.path.join(app.root_path, 'static', 'logo.jpg')
+    
     if os.path.exists(logo_path):
-        logo = Image(logo_path, width=80*mm, height=40*mm)
+        # Create Image object from the local file
+        logo = Image(logo_path, width=80*mm, height=40*mm) # Adjust width/height as needed
         logo.hAlign = 'RIGHT'
         elements.append(logo)
         elements.append(Spacer(1, 2*mm))
+    else:
+        # Fallback if file is missing (debugging purpose)
+        print(f"Warning: Logo not found at {logo_path}")
 
-    # ===== Title top-left =====
+    # ===== Title =====
     elements.append(Paragraph("<b>QUOTE</b>", title_style))
     elements.append(Spacer(1, 5*mm))
 
-    # ===== Quote info & client info =====
+    # ===== Info Table =====
+    # Handle missing keys gracefully
+    quote_num = invoice.get('quote_number', 'N/A')
+    
+    # Parse date safely
+    try:
+        date_obj = datetime.fromisoformat(invoice['created_at'].replace('Z', '+00:00'))
+        date_str = date_obj.strftime('%d %B %Y')
+    except:
+        date_str = "Unknown Date"
+
     info_data = [
-        [Paragraph(f"<b>Quote No:</b> {invoice.get('quote_number','N/A')}", styles['Normal']),
+        [Paragraph(f"<b>Quote No:</b> {quote_num}", styles['Normal']),
          Paragraph(f"<b>QUOTE TO:</b>", styles['Normal'])],
-        [Paragraph(f"<b>Quote Date:</b> {datetime.fromisoformat(invoice['created_at']).strftime('%d %B %Y')}", styles['Normal']),
-         Paragraph(f"<b>Client Name:</b> {invoice['clientName']}", styles['Normal'])],
+        [Paragraph(f"<b>Quote Date:</b> {date_str}", styles['Normal']),
+         Paragraph(f"<b>Client Name:</b> {invoice.get('client_name','')}", styles['Normal'])],
         [Paragraph(f"<b>ABN:</b> {settings.get('abn','')}", styles['Normal']),
-         Paragraph(f"<b>Client Number:</b> {invoice.get('clientNumber','N/A')}", styles['Normal'])]
+         Paragraph(f"<b>Client Number:</b> {invoice.get('client_number','N/A')}", styles['Normal'])]
     ]
+    
     info_table = Table(info_data, colWidths=[90*mm, 90*mm])
     info_table.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP')]))
     elements.append(info_table)
     elements.append(Spacer(1, 5*mm))
 
-    # ===== Job Summary =====
-    summary_file = os.path.join('data', 'job_summary.txt')
-    if os.path.exists(summary_file):
-        with open(summary_file, 'r') as f:
-            job_summary = f.read()
-        for line in job_summary.split('\n'):
+    # ===== Job Summary (From DB) =====
+    if job_summary_text:
+        for line in job_summary_text.split('\n'):
             if line.strip():
-                if line.startswith('Materials & Finishes') or line.startswith('Scope of Work') or line.startswith('Notes'):
+                if any(x in line for x in ['Materials & Finishes', 'Scope of Work', 'Notes']):
                     elements.append(Paragraph(f"<b>{line}</b>", styles['Heading3']))
                 else:
                     elements.append(Paragraph(line, styles['Normal']))
-                elements.append(Spacer(1,2*mm))
-    elements.append(Spacer(1,5*mm))
+                elements.append(Spacer(1, 2*mm))
+        elements.append(Spacer(1, 5*mm))
 
     # ===== Items Table =====
     table_data = [['NO.', 'DESCRIPTION', 'QTY', 'PRICE', 'TOTAL']]
-    for idx, item in enumerate(invoice['items'], start=1):
-        name = item.get('service', item.get('name'))
+    
+    items = invoice.get('items', [])
+    if isinstance(items, str): # Handle case where JSONB comes back as string (rare but possible)
+        items = json.loads(items)
+
+    for idx, item in enumerate(items, start=1):
+        name = item.get('service', item.get('name', 'Unknown Item'))
         if item.get('subService'):
             name += f" - {item['subService']}"
+        
+        qty = float(item.get('quantity', 0))
+        price = float(item.get('price', 0))
+        total = float(item.get('total', 0))
+        
         table_data.append([
             str(idx),
             Paragraph(name, styles['Normal']),
-            f"{item['quantity']} {item['unit']}{'s' if item['quantity']>1 else ''}",
-            "",
-            ""
+            f"{qty} {item.get('unit','')}",
+            f"${price:.2f}",
+            f"${total:.2f}"
         ])
+        
         if item.get('notes'):
             note_style = ParagraphStyle('note', parent=styles['Normal'], fontSize=9, textColor=colors.grey, fontName='Helvetica-Oblique')
             table_data.append(['', Paragraph(f"<i>Note: {item['notes']}</i>", note_style), '', '', ''])
 
-    subtotal = invoice['total']
+    # Totals
+    subtotal = float(invoice.get('total', 0))
     gst = subtotal * 0.1
-    total_with_gst = subtotal + gst
+    grand_total = subtotal + gst
+
     table_data.append(['', '', '', Paragraph('<b>Subtotal:</b>', styles['Normal']), f"${subtotal:.2f}"])
     table_data.append(['', '', '', Paragraph('<b>GST (10%):</b>', styles['Normal']), f"${gst:.2f}"])
-    table_data.append(['', '', '', Paragraph('<b>Total:</b>', styles['Normal']), f"${total_with_gst:.2f}"])
+    table_data.append(['', '', '', Paragraph('<b>Total:</b>', styles['Normal']), f"${grand_total:.2f}"])
 
     table = Table(table_data, colWidths=[15*mm, 90*mm, 25*mm, 30*mm, 25*mm])
     table.setStyle(TableStyle([
@@ -408,39 +295,38 @@ def generate_pdf(invoice, settings):
         ('BACKGROUND',(0,0),(-1,0),colors.grey),
         ('TEXTCOLOR',(0,0),(-1,0),colors.whitesmoke),
         ('ALIGN',(0,0),(0,-1),'CENTER'),
-        ('ALIGN',(2,0),(-1,-1),'RIGHT'),
+        ('ALIGN',(3,0),(-1,-1),'RIGHT'),
         ('VALIGN',(0,0),(-1,-1),'TOP')
     ]))
     elements.append(table)
-    elements.append(Spacer(1,5*mm))
+    elements.append(Spacer(1, 5*mm))
 
-    # ===== Payment Info =====
-    elements.append(Paragraph("<b>YOUR PAYMENT OPTIONS</b>", styles['Heading2']))
-    elements.append(Spacer(1,2*mm))
-    elements.append(Paragraph("<b>DIRECT DEPOSIT</b>", styles['Heading3']))
-    elements.append(Spacer(1,2*mm))
-    payment_info = f"""<b>Account Name:</b> {settings['bank_account_name']}<br/>
-<b>BSB:</b> {settings['bank_bsb']}<br/>
-<b>Account Number:</b> {settings['bank_account']}<br/>
-<b>Reference:</b> {invoice.get('quote_number','N/A')}"""
-    elements.append(Paragraph(payment_info, styles['Normal']))
+    # ===== Payment Info (From DB Settings) =====
+    elements.append(Paragraph("<b>PAYMENT OPTIONS</b>", styles['Heading2']))
+    elements.append(Spacer(1, 2*mm))
+    
+    payment_html = f"""
+    <b>Account Name:</b> {settings.get('bank_account_name', '')}<br/>
+    <b>BSB:</b> {settings.get('bank_bsb', '')}<br/>
+    <b>Account Number:</b> {settings.get('bank_account', '')}<br/>
+    <b>Reference:</b> {quote_num}
+    """
+    elements.append(Paragraph(payment_html, styles['Normal']))
 
-    # ===== Footer: Contact Info at bottom of last page =====
-    elements.append(Spacer(1, 50*mm))  # push footer down
-    contact_info = f"""<b>INFO CONTACT:</b><br/>
-{settings['company_name']}<br/>
-{settings['phone']}<br/>
-{settings['email']}<br/>
-{settings['address']}<br/>
-<b>{settings['area_manager']}</b><br/>
-Area Manager"""
+    # ===== Footer Contact (From DB Settings) =====
+    elements.append(Spacer(1, 30*mm))
+    contact_info = f"""
+    <b>CONTACT:</b><br/>
+    {settings.get('company_name', '')}<br/>
+    {settings.get('phone', '')}<br/>
+    {settings.get('email', '')}<br/>
+    {settings.get('address', '')}<br/>
+    <b>{settings.get('area_manager', '')}</b>
+    """
     elements.append(Paragraph(contact_info, styles['Normal']))
 
     doc.build(elements)
-    buffer.seek(0)
     return buffer
-'''
+
 if __name__ == '__main__':
-    # Use threaded=True and disable reloader to avoid Mac binding issues
-    app.run(host='0.0.0.0', port=10000, debug=False, threaded=True)
-'''
+    app.run(host='0.0.0.0', port=10000)
