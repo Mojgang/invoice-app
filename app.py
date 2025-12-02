@@ -86,6 +86,17 @@ def has_supabase():
 def index():
     return app.send_static_file('index.html')
 
+# Helper to get setting or return default
+def get_db_setting(key, default_value):
+    try:
+        response = supabase.table('settings').select('value').eq('key', key).execute()
+        if response.data and len(response.data) > 0:
+            return response.data[0]['value']
+        return default_value
+    except Exception as e:
+        print(f"Error fetching {key}: {e}")
+        return default_value
+    
 @app.route('/api/services', methods=['GET'])
 def get_services():
     # Default empty structure if DB is empty
