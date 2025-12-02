@@ -21,43 +21,50 @@ from reportlab.lib.utils import ImageReader
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
-
+import os
 import sys
+os.environ['SUPABASE_URL'] = 'https://iqqczpmvqiuqrtnzusqx.supabase.co'  # Assign a string value
+os.environ['SUPABASE_KEY'] = 'sb_publishable_7EhrzbtM43LQrNFCY019UQ_KKKjCino'  # Assign a string value
 
-# Supabase setup
-SUPABASE_URL = os.environ.get('SUPABASE_URL')
-SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
-if not SUPABASE_URL:
-    print("❌ CRITICAL ERROR: SUPABASE_URL is missing.")
-    # We exit here because the app cannot function without DB
-    # But now we know exactly why it failed in the logs
+
+raw_url = os.environ.get('SUPABASE_URL')
+raw_key = os.environ.get('SUPABASE_KEY')
+
+# 1. FAILSAFE: Automatically remove empty spaces, newlines, or quotes
+#    This fixes the issue even if you accidentally pasted " key " or "'key'" in Render.
+if raw_url:
+    SUPABASE_URL = raw_url.strip().strip("'").strip('"')
+else:
+    SUPABASE_URL = None
+
+if raw_key:
+    SUPABASE_KEY = raw_key.strip().strip("'").strip('"')
+else:
+    SUPABASE_KEY = None
+
+# 2. DEBUGGING: Print what Python actually sees (Safe Logs)
+print(f"DEBUG: URL is set? {bool(SUPABASE_URL)}")
+if SUPABASE_URL:
+    print(f"DEBUG: URL starts with: '{SUPABASE_URL[:8]}'") # Should be 'https://'
+    print(f"DEBUG: URL ends with:   '{SUPABASE_URL[-5:]}'")
+
+print(f"DEBUG: KEY is set? {bool(SUPABASE_KEY)}")
+if SUPABASE_KEY:
+    print(f"DEBUG: KEY length: {len(SUPABASE_KEY)}")
+    print(f"DEBUG: KEY starts with: '{SUPABASE_KEY[:5]}'") # Should be 'eyJhb'
+    print(f"DEBUG: KEY ends with:   '{SUPABASE_KEY[-5:]}'")
+
+# 3. CRASH PREVENTION: Stop here if keys are missing
+if not SUPABASE_URL or not SUPABASE_KEY:
+    print("❌ CRITICAL ERROR: URL or KEY is missing or empty.")
     sys.exit(1)
 
-if not SUPABASE_KEY:
-    print("❌ CRITICAL ERROR: SUPABASE_KEY is missing.")
-    sys.exit(1)
-
+# 4. CONNECT
 try:
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 except Exception as e:
-    print(f"❌ CRITICAL ERROR: Could not connect to Supabase. Check your URL/KEY format. Error: {e}")
+    print(f"❌ CRITICAL ERROR during create_client: {e}")
     sys.exit(1)
-
-# Add this check to debug WHY it fails
-if not SUPABASE_URL:
-    print("CRITICAL ERROR: SUPABASE_URL is missing from environment variables.")
-if not SUPABASE_KEY:
-    print("CRITICAL ERROR: SUPABASE_KEY is missing from environment variables.")
-
-# Only try to connect if keys exist
-if SUPABASE_URL and SUPABASE_KEY:
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-else:
-    # This prevents the app from crashing immediately, but API calls will fail
-    # It allows the server to start so you can read the logs
-    print("Warning: Supabase client not initialized due to missing keys.")
-    supabase = None
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Helper to get setting or return default
 def get_db_setting(key, default_value):
