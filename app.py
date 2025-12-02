@@ -186,76 +186,109 @@ def generate_pdf_route(invoice_id):
         download_name=filename
     )
 
+from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
+
 def generate_pdf(invoice, settings, job_summary_text):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4,
-                            topMargin=20*mm, bottomMargin=25*mm,
+                            topMargin=15*mm, bottomMargin=15*mm,
                             leftMargin=15*mm, rightMargin=15*mm)
 
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle('title', parent=styles['Heading1'], fontSize=24, alignment=TA_LEFT)
+    
+    # --- HEADER STYLES ---
+    header_title = ParagraphStyle('HeaderTitle', parent=styles['Heading1'], fontSize=24, spaceAfter=8, textColor=colors.black)
+    header_text = ParagraphStyle('HeaderText', parent=styles['Normal'], fontSize=10, leading=14)
+    total_label_style = ParagraphStyle('TotalLabel', parent=styles['Normal'], alignment=TA_RIGHT)
+    
+    # --- JOB SUMMARY STYLES (NEW) ---
+    # Style for "JOB SUMMARY:" and "# Title"
+    summary_main = ParagraphStyle('SummaryMain', parent=styles['Normal'], fontSize=11, leading=15, fontName='Helvetica-Bold', spaceBefore=10, spaceAfter=4)
+    
+    # Style for "## Subtitle" (Just bold, same size as text)
+    summary_sub = ParagraphStyle('SummarySub', parent=styles['Normal'], fontSize=10, leading=14, fontName='Helvetica-Bold', spaceBefore=3)
+    
+    # Style for "* Bullet"
+    summary_bullet = ParagraphStyle('SummaryBullet', parent=styles['Normal'], fontSize=10, leading=14, leftIndent=12)
 
     elements = []
 
-    # ===== LOGO LOGIC (Reads from static/logo.jpg) =====
-    # We construct the absolute path to ensure Render finds it
-    logo_path = os.path.join(app.root_path, 'static', 'logo.jpg')
-    
-    if os.path.exists(logo_path):
-        # Create Image object from the local file
-        logo = Image(logo_path, width=80*mm, height=40*mm) # Adjust width/height as needed
-        logo.hAlign = 'RIGHT'
-        elements.append(logo)
-        elements.append(Spacer(1, 2*mm))
-    else:
-        # Fallback if file is missing (debugging purpose)
-        print(f"Warning: Logo not found at {logo_path}")
-
-    # ===== Title =====
-    elements.append(Paragraph("<b>QUOTE</b>", title_style))
-    elements.append(Spacer(1, 5*mm))
-
-    # ===== Info Table =====
-    # Handle missing keys gracefully
+    # ================= HEADER SECTION =================
     quote_num = invoice.get('quote_number', 'N/A')
-    
-    # Parse date safely
     try:
         date_obj = datetime.fromisoformat(invoice['created_at'].replace('Z', '+00:00'))
         date_str = date_obj.strftime('%d %B %Y')
     except:
-        date_str = "Unknown Date"
+        date_str = datetime.now().strftime('%d %B %Y')
 
-    info_data = [
-        [Paragraph(f"<b>Quote No:</b> {quote_num}", styles['Normal']),
-         Paragraph(f"<b>QUOTE TO:</b>", styles['Normal'])],
-        [Paragraph(f"<b>Quote Date:</b> {date_str}", styles['Normal']),
-         Paragraph(f"<b>Client Name:</b> {invoice.get('client_name','')}", styles['Normal'])],
-        [Paragraph(f"<b>ABN:</b> {settings.get('abn','')}", styles['Normal']),
-         Paragraph(f"<b>Client Number:</b> {invoice.get('client_number','N/A')}", styles['Normal'])]
+    left_column = [
+        Paragraph("<b>QUOTE</b>", header_title),
+        Paragraph(f"<b>Quote No:</b> {quote_num}", header_text),
+        Paragraph(f"<b>Quote Date:</b> {date_str}", header_text),
+        Paragraph(f"<b>ABN:</b> {settings.get('abn', '')}", header_text),
+        Spacer(1, 5*mm),
+        Paragraph("<b>QUOTE TO:</b>", header_text),
+        Paragraph(f"<b>Client Name:</b> {invoice.get('client_name', '')}", header_text),
+        Paragraph(f"<b>Client Number:</b> {invoice.get('client_number', '')}", header_text),
     ]
-    
-    info_table = Table(info_data, colWidths=[90*mm, 90*mm])
-    info_table.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP')]))
-    elements.append(info_table)
+
+    right_column = []
+    logo_path = os.path.join(app.root_path, 'static', 'logo.jpg')
+    if os.path.exists(logo_path):
+        logo = Image(logo_path, width=70*mm, height=40*mm)
+        logo.hAlign = 'RIGHT'
+        right_column.append(logo)
+    else:
+        right_column.append(Paragraph("<b>LOGO</b>", header_title))
+
+    header_data = [[left_column, right_column]]
+    header_table = Table(header_data, colWidths=[100*mm, 80*mm])
+    header_table.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('ALIGN', (0,0), (0,0), 'LEFT'),
+        ('ALIGN', (1,0), (1,0), 'RIGHT'),
+        ('LEFTPADDING', (0,0), (-1,-1), 0),
+        ('RIGHTPADDING', (0,0), (-1,-1), 0),
+    ]))
+    elements.append(header_table)
     elements.append(Spacer(1, 5*mm))
 
-    # ===== Job Summary (From DB) =====
+    # ================= JOB SUMMARY (Logic Updated) =================
     if job_summary_text:
+        # Main Title
+        elements.append(Paragraph("JOB SUMMARY:", summary_main))
+
         for line in job_summary_text.split('\n'):
-            if line.strip():
-                if any(x in line for x in ['Materials & Finishes', 'Scope of Work', 'Notes']):
-                    elements.append(Paragraph(f"<b>{line}</b>", styles['Heading3']))
-                else:
-                    elements.append(Paragraph(line, styles['Normal']))
-                elements.append(Spacer(1, 2*mm))
+            line = line.strip()
+            if not line:
+                continue 
+
+            # CHECK 1: Starts with ## (Just Bold)
+            if line.startswith('##'):
+                clean_text = line[2:].strip() # Remove first 2 chars
+                elements.append(Paragraph(clean_text, summary_sub))
+            
+            # CHECK 2: Starts with # (Main Header Style)
+            elif line.startswith('#'):
+                clean_text = line[1:].strip() # Remove first 1 char
+                elements.append(Paragraph(clean_text, summary_main))
+                
+            # CHECK 3: Bullets
+            elif line.startswith('*') or line.startswith('-'):
+                clean_text = line.lstrip('*-').strip()
+                elements.append(Paragraph(f"• {clean_text}", summary_bullet))
+                
+            # CHECK 4: Normal Text
+            else:
+                elements.append(Paragraph(line, header_text))
+        
         elements.append(Spacer(1, 5*mm))
 
-    # ===== Items Table =====
-    table_data = [['NO.', 'DESCRIPTION', 'QTY', 'PRICE', 'TOTAL']]
+    # ================= ITEMS TABLE =================
+    table_data = [['NO.', 'DESCRIPTION', 'QTY']]
     
     items = invoice.get('items', [])
-    if isinstance(items, str): # Handle case where JSONB comes back as string (rare but possible)
+    if isinstance(items, str):
         items = json.loads(items)
 
     for idx, item in enumerate(items, start=1):
@@ -264,44 +297,42 @@ def generate_pdf(invoice, settings, job_summary_text):
             name += f" - {item['subService']}"
         
         qty = float(item.get('quantity', 0))
-        price = float(item.get('price', 0))
-        total = float(item.get('total', 0))
         
         table_data.append([
             str(idx),
-            Paragraph(name, styles['Normal']),
-            f"{qty} {item.get('unit','')}",
-            f"${price:.2f}",
-            f"${total:.2f}"
+            Paragraph(name, header_text),
+            f"{qty} {item.get('unit','')}"
         ])
         
         if item.get('notes'):
             note_style = ParagraphStyle('note', parent=styles['Normal'], fontSize=9, textColor=colors.grey, fontName='Helvetica-Oblique')
-            table_data.append(['', Paragraph(f"<i>Note: {item['notes']}</i>", note_style), '', '', ''])
+            table_data.append(['', Paragraph(f"<i>Note: {item['notes']}</i>", note_style), '' ])
 
-    # Totals
+    # ================= TOTALS =================
     subtotal = float(invoice.get('total', 0))
     gst = subtotal * 0.1
     grand_total = subtotal + gst
 
-    table_data.append(['', '', '', Paragraph('<b>Subtotal:</b>', styles['Normal']), f"${subtotal:.2f}"])
-    table_data.append(['', '', '', Paragraph('<b>GST (10%):</b>', styles['Normal']), f"${gst:.2f}"])
-    table_data.append(['', '', '', Paragraph('<b>Total:</b>', styles['Normal']), f"${grand_total:.2f}"])
+    table_data.append(['', Paragraph('<b>Subtotal:</b>', total_label_style), f"${subtotal:.2f}"])
+    table_data.append(['', Paragraph('<b>GST (10%):</b>', total_label_style), f"${gst:.2f}"])
+    table_data.append(['', Paragraph('<b>Total:</b>', total_label_style), f"${grand_total:.2f}"])
 
-    table = Table(table_data, colWidths=[15*mm, 90*mm, 25*mm, 30*mm, 25*mm])
+    table = Table(table_data, colWidths=[15*mm, 135*mm, 30*mm])
     table.setStyle(TableStyle([
         ('GRID',(0,0),(-1,-4),0.5,colors.grey),
         ('FONTNAME',(0,0),(-1,0),'Helvetica-Bold'),
         ('BACKGROUND',(0,0),(-1,0),colors.grey),
         ('TEXTCOLOR',(0,0),(-1,0),colors.whitesmoke),
         ('ALIGN',(0,0),(0,-1),'CENTER'),
-        ('ALIGN',(3,0),(-1,-1),'RIGHT'),
-        ('VALIGN',(0,0),(-1,-1),'TOP')
+        ('ALIGN',(2,0),(-1,-1),'CENTER'),
+        ('ALIGN',(2,-3),(-1,-1),'RIGHT'),
+        ('VALIGN',(0,0),(-1,-1),'TOP'),
+        ('LINEBELOW', (0,-4), (-1,-4), 1, colors.black),
     ]))
     elements.append(table)
-    elements.append(Spacer(1, 5*mm))
+    elements.append(Spacer(1, 10*mm))
 
-    # ===== Payment Info (From DB Settings) =====
+    # ================= PAYMENT & FOOTER =================
     elements.append(Paragraph("<b>PAYMENT OPTIONS</b>", styles['Heading2']))
     elements.append(Spacer(1, 2*mm))
     
@@ -311,10 +342,9 @@ def generate_pdf(invoice, settings, job_summary_text):
     <b>Account Number:</b> {settings.get('bank_account', '')}<br/>
     <b>Reference:</b> {quote_num}
     """
-    elements.append(Paragraph(payment_html, styles['Normal']))
+    elements.append(Paragraph(payment_html, header_text))
 
-    # ===== Footer Contact (From DB Settings) =====
-    elements.append(Spacer(1, 30*mm))
+    elements.append(Spacer(1, 20*mm))
     contact_info = f"""
     <b>CONTACT:</b><br/>
     {settings.get('company_name', '')}<br/>
@@ -323,7 +353,7 @@ def generate_pdf(invoice, settings, job_summary_text):
     {settings.get('address', '')}<br/>
     <b>{settings.get('area_manager', '')}</b>
     """
-    elements.append(Paragraph(contact_info, styles['Normal']))
+    elements.append(Paragraph(contact_info, header_text))
 
     doc.build(elements)
     return buffer

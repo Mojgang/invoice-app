@@ -526,7 +526,8 @@
                     This text will be included in every PDF quotation after the description section.
                 </p>
                 <div class="input-group">
-                    <textarea id="jobSummaryText" style="min-height: 400px; font-size: 13px; line-height: 1.6;"></textarea>
+                    <textarea id="jobSummaryText" style="min-height: 400px; font-size: 13px; line-height: 1.6;" 
+                    placeholder="Use '## ' for Bold Titles (e.g. ## 1. Cabinetry)&#10;Use '* ' for Bullet points&#10;Normal text for descriptions"></textarea>
                 </div>
                 <button class="btn" onclick="saveJobSummary()">Save Job Summary</button>
             </div>
@@ -1229,7 +1230,7 @@
                         <div class="invoice-total">$${parseFloat(invoice.total).toFixed(2)}</div>
                     </div>
                     <div class="action-buttons">
-                        <button class="btn-success" onclick="downloadPDF('${invoice.id}')">Download PDF</button>
+                        <button class="btn-success" onclick="downloadPDF('${invoice.id}', '${invoice.quote_number}')">Download PDF</button>
                         <button class="btn" style="background: #ff9500; width: auto; padding: 8px 16px; margin-right: 10px;" onclick="editInvoice('${invoice.id}')">Edit</button>
                         <button class="btn-danger" onclick="deleteInvoice('${invoice.id}')">Delete</button>
                     </div>
@@ -1243,8 +1244,28 @@
             loadInvoices();
         }
 
-        async function downloadPDF(id) {
-            window.location.href = `${API_URL}/api/invoices/${id}/pdf`;
+        async function downloadPDF(id, quoteNumber) {
+            try {
+                const response = await fetch(`${API_URL}/api/invoices/${id}/pdf`);
+                if (!response.ok) throw new Error('Download failed');
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                
+                // Use Quote Number if available, otherwise fallback to ID
+                const filename = quoteNumber ? `Quote_${quoteNumber}.pdf` : `quotation_${id}.pdf`;
+                a.download = filename;
+                
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } catch (error) {
+                console.error('Error downloading PDF:', error);
+                alert('Error downloading PDF');
+            }
         }
 
         async function loadJobSummary() {
