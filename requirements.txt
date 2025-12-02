@@ -4,6 +4,6 @@ gunicorn==21.2.0
 reportlab==4.0.7
 pytz==2023.3
 psycopg2-binary==2.9.9
-supabase==2.3.4
+supabase>=2.9.0
 postgrest==0.13.2
 requests

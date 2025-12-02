@@ -6,7 +6,8 @@ from datetime import datetime
 import uuid
 import io
 import pytz
-from supabase import create_client, Client
+import psycopg2
+from psycopg2.extras import RealDictCursor, Json
 
 # ReportLab imports
 from reportlab.lib.pagesizes import A4
@@ -14,228 +15,444 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 from reportlab.lib.units import mm
-from reportlab.lib.enums import TA_LEFT
-
-
-app = Flask(__name__, static_folder='static')
-CORS(app)
-import os
-import sys
-
-
-raw_url = os.environ.get('SUPABASE_URL')
-raw_key = os.environ.get('SUPABASE_KEY')
+from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
 
-# Clean environment variables
-raw_url = os.environ.get('SUPABASE_URL')
-raw_key = os.environ.get('SUPABASE_KEY')
+# ============================================
+# DATABASE CONNECTION (POSTGRESQL ONLY)
+# ============================================
 
-if raw_url:
-    SUPABASE_URL = raw_url.strip().strip("'").strip('"')
-else:
-    SUPABASE_URL = None
-
-if raw_key:
-    SUPABASE_KEY = raw_key.strip().strip("'").strip('"')
-else:
-    SUPABASE_KEY = None
-
-# Debug logging
-print(f"DEBUG: URL is set? {bool(SUPABASE_URL)}")
-if SUPABASE_URL:
-    print(f"DEBUG: URL starts with: '{SUPABASE_URL[:8]}'")
-    print(f"DEBUG: URL ends with:   '{SUPABASE_URL[-5:]}'")
-
-print(f"DEBUG: KEY is set? {bool(SUPABASE_KEY)}")
-if SUPABASE_KEY:
-    print(f"DEBUG: KEY length: {len(SUPABASE_KEY)}")
-    print(f"DEBUG: KEY starts with: '{SUPABASE_KEY[:6]}'")
-    print(f"DEBUG: KEY ends with:   '{SUPABASE_KEY[-5:]}'")
-
-# Connect to Supabase with proper error handling
-supabase = None
-if SUPABASE_URL and SUPABASE_KEY:
-    try:
+def get_db_connection():
+    """Get PostgreSQL connection from Supabase"""
+    db_url = os.environ.get('DATABASE_URL')
+    
+    if not db_url:
+        # Build from individual components
+        host = os.environ.get('SUPABASE_DB_HOST')
+        password = os.environ.get('SUPABASE_DB_PASSWORD')
         
-        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-        print("✅ Supabase client created successfully")
+        if host and password:
+            db_url = f"postgresql://postgres.{host}:5432/postgres?password={password}"
+    
+    if not db_url:
+        raise Exception("No database credentials found. Set DATABASE_URL or SUPABASE_DB_HOST + SUPABASE_DB_PASSWORD")
+    
+    try:
+        conn = psycopg2.connect(db_url, cursor_factory=RealDictCursor)
+        return conn
     except Exception as e:
-        print(f"⚠️ WARNING: Could not connect to Supabase: {e}")
-        print("⚠️ App will continue with file-based storage only")
-        supabase = None
-else:
-    print("⚠️ WARNING: Supabase credentials not found")
-    print("⚠️ App will use file-based storage only")
+        print(f"❌ Database connection failed: {e}")
+        raise
 
-# Helper function to check if Supabase is available
-def has_supabase():
-    return supabase is not None
-# --- API ROUTES ---
+def init_database():
+    """Initialize database tables"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        print("Creating database tables...")
+        
+        # Create invoices table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS invoices (
+                id TEXT PRIMARY KEY,
+                quote_number TEXT,
+                client_name TEXT,
+                client_number TEXT,
+                project_notes TEXT,
+                items JSONB,
+                total DECIMAL(10,2),
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                updated_at TIMESTAMPTZ
+            )
+        """)
+        
+        # Create settings table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value JSONB,
+                updated_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        """)
+        
+        # Create index for faster queries
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_invoices_created 
+            ON invoices(created_at DESC)
+        """)
+        
+        # Initialize default settings if not exist
+        cursor.execute("""
+            INSERT INTO settings (key, value)
+            VALUES ('company_settings', %s)
+            ON CONFLICT (key) DO NOTHING
+        """, (Json({
+            "quote_prefix": "JN",
+            "next_quote_number": 5401,
+            "company_name": "Your Company",
+            "abn": "",
+            "phone": "",
+            "email": "",
+            "address": "",
+            "area_manager": "",
+            "bank_account_name": "",
+            "bank_bsb": "",
+            "bank_account": ""
+        }),))
+        
+        cursor.execute("""
+            INSERT INTO settings (key, value)
+            VALUES ('services', %s)
+            ON CONFLICT (key) DO NOTHING
+        """, (Json({
+            "electrician": {"name": "Electrician", "price": 85, "unit": "hour"},
+            "plumber": {"name": "Plumber", "price": 90, "unit": "hour"}
+        }),))
+        
+        cursor.execute("""
+            INSERT INTO settings (key, value)
+            VALUES ('job_summary', %s)
+            ON CONFLICT (key) DO NOTHING
+        """, (Json({"text": "Default job summary..."}),))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        print("✅ Database initialized successfully")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Database initialization failed: {e}")
+        raise
+
+# Initialize database on startup
+try:
+    init_database()
+except Exception as e:
+    print(f"❌ FATAL: Cannot start without database: {e}")
+    import sys
+    sys.exit(1)
+
+# ============================================
+# HELPER FUNCTIONS
+# ============================================
+
+def get_setting(key, default_value):
+    """Get setting from database"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT value FROM settings WHERE key = %s", (key,))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if row:
+            return row['value']
+        return default_value
+        
+    except Exception as e:
+        print(f"Error fetching {key} from DB: {e}")
+        return default_value
+
+def set_setting(key, value):
+    """Set setting in database"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO settings (key, value, updated_at)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (key) 
+            DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at
+        """, (key, Json(value), datetime.now().isoformat()))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error saving {key} to DB: {e}")
+        return False
+
+# ============================================
+# ROUTES - MAIN
+# ============================================
 
 @app.route('/')
 def index():
     return app.send_static_file('index.html')
 
-# Helper to get setting or return default
-def get_db_setting(key, default_value):
+@app.route('/health')
+def health():
+    """Health check endpoint"""
     try:
-        response = supabase.table('settings').select('value').eq('key', key).execute()
-        if response.data and len(response.data) > 0:
-            return response.data[0]['value']
-        return default_value
+        conn = get_db_connection()
+        conn.close()
+        return jsonify({"status": "healthy", "database": "connected"})
     except Exception as e:
-        print(f"Error fetching {key}: {e}")
-        return default_value
-    
+        return jsonify({"status": "unhealthy", "error": str(e)}), 500
+
+# ============================================
+# ROUTES - SERVICES
+# ============================================
+
 @app.route('/api/services', methods=['GET'])
 def get_services():
-    # Default empty structure if DB is empty
-    defaults = {"electrician": {"name": "Electrician", "price": 85, "unit": "hour"}}
-    services = get_db_setting('services', defaults)
+    """Get services from database"""
+    defaults = {
+        "electrician": {"name": "Electrician", "price": 85, "unit": "hour"},
+        "plumber": {"name": "Plumber", "price": 90, "unit": "hour"}
+    }
+    services = get_setting('services', defaults)
     return jsonify(services)
 
 @app.route('/api/services', methods=['PUT'])
 def update_services():
+    """Update services in database"""
     services = request.json
-    supabase.table('settings').upsert({
-        'key': 'services',
-        'value': services,
-        'updated_at': datetime.now().isoformat()
-    }).execute()
-    return jsonify({"message": "Services updated successfully"})
+    success = set_setting('services', services)
+    if success:
+        return jsonify({"message": "Services updated successfully"})
+    return jsonify({"error": "Failed to update services"}), 500
+
+@app.route('/api/services/migrate', methods=['POST'])
+def migrate_services():
+    """Migrate services - returns current services from DB"""
+    services = get_setting('services', {})
+    return jsonify({
+        "message": "Services loaded from database",
+        "services": services
+    })
+
+# ============================================
+# ROUTES - INVOICES
+# ============================================
 
 @app.route('/api/invoices', methods=['GET'])
 def get_invoices():
-    response = supabase.table('invoices').select('*').order('created_at', desc=True).execute()
-    return jsonify(response.data)
+    """Get all invoices from database"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM invoices ORDER BY created_at DESC")
+        invoices = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return jsonify([dict(inv) for inv in invoices])
+    except Exception as e:
+        print(f"Error fetching invoices: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/invoices', methods=['POST'])
 def create_invoice():
-    invoice = request.json
-    
-    # 1. Get Company Settings for Quote Numbering
-    defaults = {'quote_prefix': 'JN', 'next_quote_number': 5401}
-    settings = get_db_setting('company_settings', defaults)
-    
-    # 2. Generate Quote Number
-    quote_number = f"{settings.get('quote_prefix', 'JN')}{settings.get('next_quote_number', 5401)}"
-    invoice_id = str(uuid.uuid4())
-    
-    # 3. Prepare Data
-    aus_tz = pytz.timezone('Australia/Sydney')
-    now_iso = datetime.now(aus_tz).isoformat()
-
-    data = {
-        'id': invoice_id,
-        'quote_number': quote_number,
-        'client_name': invoice['clientName'],
-        'client_number': invoice.get('clientNumber', ''),
-        'project_notes': invoice.get('projectNotes', ''),
-        'items': invoice['items'],
-        'total': invoice['total'],
-        'created_at': now_iso
-    }
-    
-    # 4. Insert Invoice
-    supabase.table('invoices').insert(data).execute()
-    
-    # 5. Increment Quote Number
-    settings['next_quote_number'] = settings.get('next_quote_number', 5401) + 1
-    supabase.table('settings').upsert({
-        'key': 'company_settings',
-        'value': settings,
-        'updated_at': now_iso
-    }).execute()
-    
-    return jsonify(data), 201
+    """Create new invoice in database"""
+    try:
+        invoice = request.json
+        
+        # Get settings for quote number
+        settings = get_setting('company_settings', {
+            'quote_prefix': 'JN',
+            'next_quote_number': 5401
+        })
+        
+        # Generate quote number
+        quote_number = f"{settings.get('quote_prefix', 'JN')}{settings.get('next_quote_number', 5401)}"
+        invoice_id = str(uuid.uuid4())
+        
+        # Use Australian timezone
+        aus_tz = pytz.timezone('Australia/Sydney')
+        created_at = datetime.now(aus_tz).isoformat()
+        
+        # Save to database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO invoices (id, quote_number, client_name, client_number, 
+                                 project_notes, items, total, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING *
+        """, (
+            invoice_id,
+            quote_number,
+            invoice['clientName'],
+            invoice.get('clientNumber', ''),
+            invoice.get('projectNotes', ''),
+            Json(invoice['items']),
+            invoice['total'],
+            created_at
+        ))
+        
+        result = cursor.fetchone()
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        # Increment quote number
+        settings['next_quote_number'] = settings.get('next_quote_number', 5401) + 1
+        set_setting('company_settings', settings)
+        
+        return jsonify(dict(result)), 201
+        
+    except Exception as e:
+        print(f"Error creating invoice: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/invoices/<invoice_id>', methods=['DELETE'])
 def delete_invoice(invoice_id):
-    supabase.table('invoices').delete().eq('id', invoice_id).execute()
-    return jsonify({"message": "Invoice deleted successfully"})
+    """Delete invoice from database"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM invoices WHERE id = %s", (invoice_id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({"message": "Invoice deleted successfully"})
+    except Exception as e:
+        print(f"Error deleting invoice: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/invoices/<invoice_id>', methods=['PUT'])
 def update_invoice(invoice_id):
-    invoice = request.json
-    data = {
-        'client_name': invoice['clientName'],
-        'client_number': invoice.get('clientNumber', ''),
-        'project_notes': invoice.get('projectNotes', ''),
-        'items': invoice['items'],
-        'total': invoice['total'],
-        'updated_at': datetime.now().isoformat()
-    }
-    supabase.table('invoices').update(data).eq('id', invoice_id).execute()
-    return jsonify({"message": "Invoice updated successfully"})
+    """Update invoice in database"""
+    try:
+        invoice = request.json
+        updated_at = datetime.now().isoformat()
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE invoices 
+            SET client_name = %s, client_number = %s, project_notes = %s,
+                items = %s, total = %s, updated_at = %s
+            WHERE id = %s
+            RETURNING *
+        """, (
+            invoice['clientName'],
+            invoice.get('clientNumber', ''),
+            invoice.get('projectNotes', ''),
+            Json(invoice['items']),
+            invoice['total'],
+            updated_at,
+            invoice_id
+        ))
+        
+        result = cursor.fetchone()
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        if result:
+            return jsonify(dict(result))
+        return jsonify({"error": "Invoice not found"}), 404
+        
+    except Exception as e:
+        print(f"Error updating invoice: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# ============================================
+# ROUTES - JOB SUMMARY
+# ============================================
 
 @app.route('/api/job-summary', methods=['GET'])
 def get_job_summary():
-    # Note: We extract the 'text' field from the JSON object
-    data = get_db_setting('job_summary', {"text": "Default summary..."})
+    """Get job summary from database"""
+    data = get_setting('job_summary', {"text": "Default summary..."})
     return jsonify({"summary": data.get('text', '')})
 
 @app.route('/api/job-summary', methods=['PUT'])
 def update_job_summary():
+    """Update job summary in database"""
     summary_text = request.json.get('summary', '')
-    supabase.table('settings').upsert({
-        'key': 'job_summary',
-        'value': {"text": summary_text}, # Store as JSON
-        'updated_at': datetime.now().isoformat()
-    }).execute()
-    return jsonify({"message": "Job summary updated successfully"})
+    success = set_setting('job_summary', {"text": summary_text})
+    if success:
+        return jsonify({"message": "Job summary updated successfully"})
+    return jsonify({"error": "Failed to update job summary"}), 500
+
+# ============================================
+# ROUTES - COMPANY SETTINGS
+# ============================================
 
 @app.route('/api/company-settings', methods=['GET'])
 def get_company_settings():
-    settings = get_db_setting('company_settings', {})
+    """Get company settings from database"""
+    defaults = {
+        "quote_prefix": "JN",
+        "next_quote_number": 5401,
+        "company_name": "Your Company",
+        "abn": "",
+        "phone": "",
+        "email": "",
+        "address": "",
+        "area_manager": "",
+        "bank_account_name": "",
+        "bank_bsb": "",
+        "bank_account": ""
+    }
+    settings = get_setting('company_settings', defaults)
     return jsonify(settings)
 
 @app.route('/api/company-settings', methods=['PUT'])
 def update_company_settings():
+    """Update company settings in database"""
     settings = request.json
-    supabase.table('settings').upsert({
-        'key': 'company_settings',
-        'value': settings,
-        'updated_at': datetime.now().isoformat()
-    }).execute()
-    return jsonify({"message": "Company settings updated successfully"})
+    success = set_setting('company_settings', settings)
+    if success:
+        return jsonify({"message": "Company settings updated successfully"})
+    return jsonify({"error": "Failed to update settings"}), 500
 
-# --- PDF GENERATION ---
+# ============================================
+# ROUTES - PDF GENERATION
+# ============================================
 
 @app.route('/api/invoices/<invoice_id>/pdf', methods=['GET'])
 def generate_pdf_route(invoice_id):
-    # 1. Fetch Invoice
-    inv_res = supabase.table('invoices').select('*').eq('id', invoice_id).execute()
-    if not inv_res.data:
-        return jsonify({"error": "Invoice not found"}), 404
-    invoice = inv_res.data[0]
-    
-    # 2. Fetch Company Settings (for footer/header)
-    settings = get_db_setting('company_settings', {})
-    
-    # 3. Fetch Job Summary
-    summary_data = get_db_setting('job_summary', {"text": ""})
-    job_summary_text = summary_data.get('text', '')
-    
-    # 4. Generate PDF
-    buffer = generate_pdf(invoice, settings, job_summary_text)
-    buffer.seek(0)
-    
-    filename = f"quote_{invoice.get('quote_number', 'draft')}.pdf"
-    
-    return send_file(
-        buffer,
-        mimetype='application/pdf',
-        as_attachment=True,
-        download_name=filename
-    )
+    """Generate PDF for invoice"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM invoices WHERE id = %s", (invoice_id,))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if not row:
+            return jsonify({"error": "Invoice not found"}), 404
+        
+        invoice = dict(row)
+        
+        # Get settings and job summary
+        settings = get_setting('company_settings', {})
+        summary_data = get_setting('job_summary', {"text": ""})
+        job_summary_text = summary_data.get('text', '')
+        
+        # Generate PDF
+        buffer = generate_pdf(invoice, settings, job_summary_text)
+        buffer.seek(0)
+        
+        filename = f"quote_{invoice.get('quote_number', 'draft')}_{invoice.get('client_name', 'client').replace(' ', '_')}.pdf"
+        
+        return send_file(
+            buffer,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        print(f"Error generating PDF: {e}")
+        return jsonify({"error": str(e)}), 500
 
-from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
+# ============================================
+# PDF GENERATION FUNCTION
+# ============================================
 
 def generate_pdf(invoice, settings, job_summary_text):
+    """Generate PDF content"""
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4,
                             topMargin=15*mm, bottomMargin=15*mm,
@@ -243,25 +460,29 @@ def generate_pdf(invoice, settings, job_summary_text):
 
     styles = getSampleStyleSheet()
     
-    # --- HEADER STYLES ---
-    header_title = ParagraphStyle('HeaderTitle', parent=styles['Heading1'], fontSize=24, spaceAfter=8, textColor=colors.black)
-    header_text = ParagraphStyle('HeaderText', parent=styles['Normal'], fontSize=10, leading=14)
-    total_label_style = ParagraphStyle('TotalLabel', parent=styles['Normal'], alignment=TA_RIGHT)
+    # Header styles
+    header_title = ParagraphStyle('HeaderTitle', parent=styles['Heading1'], 
+                                   fontSize=24, spaceAfter=8, textColor=colors.black)
+    header_text = ParagraphStyle('HeaderText', parent=styles['Normal'], 
+                                  fontSize=10, leading=14)
+    total_label_style = ParagraphStyle('TotalLabel', parent=styles['Normal'], 
+                                        alignment=TA_RIGHT)
     
-    # --- JOB SUMMARY STYLES (NEW) ---
-    # Style for "JOB SUMMARY:" and "# Title"
-    summary_main = ParagraphStyle('SummaryMain', parent=styles['Normal'], fontSize=11, leading=15, fontName='Helvetica-Bold', spaceBefore=10, spaceAfter=4)
-    
-    # Style for "## Subtitle" (Just bold, same size as text)
-    summary_sub = ParagraphStyle('SummarySub', parent=styles['Normal'], fontSize=10, leading=14, fontName='Helvetica-Bold', spaceBefore=3)
-    
-    # Style for "* Bullet"
-    summary_bullet = ParagraphStyle('SummaryBullet', parent=styles['Normal'], fontSize=10, leading=14, leftIndent=12)
+    # Job summary styles
+    summary_main = ParagraphStyle('SummaryMain', parent=styles['Normal'], 
+                                   fontSize=11, leading=15, fontName='Helvetica-Bold', 
+                                   spaceBefore=10, spaceAfter=4)
+    summary_sub = ParagraphStyle('SummarySub', parent=styles['Normal'], 
+                                  fontSize=10, leading=14, fontName='Helvetica-Bold', 
+                                  spaceBefore=3)
+    summary_bullet = ParagraphStyle('SummaryBullet', parent=styles['Normal'], 
+                                     fontSize=10, leading=14, leftIndent=12)
 
     elements = []
 
     # ================= HEADER SECTION =================
     quote_num = invoice.get('quote_number', 'N/A')
+    
     try:
         date_obj = datetime.fromisoformat(invoice['created_at'].replace('Z', '+00:00'))
         date_str = date_obj.strftime('%d %B %Y')
@@ -279,14 +500,8 @@ def generate_pdf(invoice, settings, job_summary_text):
         Paragraph(f"<b>Client Number:</b> {invoice.get('client_number', '')}", header_text),
     ]
 
-    right_column = []
-    logo_path = os.path.join(app.root_path, 'static', 'logo.jpg')
-    if os.path.exists(logo_path):
-        logo = Image(logo_path, width=70*mm, height=40*mm)
-        logo.hAlign = 'RIGHT'
-        right_column.append(logo)
-    else:
-        right_column.append(Paragraph("<b>LOGO</b>", header_title))
+    # Logo placeholder (you can upload logo to static folder and reference it)
+    right_column = [Paragraph("", header_text)]
 
     header_data = [[left_column, right_column]]
     header_table = Table(header_data, colWidths=[100*mm, 80*mm])
@@ -300,9 +515,8 @@ def generate_pdf(invoice, settings, job_summary_text):
     elements.append(header_table)
     elements.append(Spacer(1, 5*mm))
 
-    # ================= JOB SUMMARY (Logic Updated) =================
+    # ================= JOB SUMMARY =================
     if job_summary_text:
-        # Main Title
         elements.append(Paragraph("JOB SUMMARY:", summary_main))
 
         for line in job_summary_text.split('\n'):
@@ -310,22 +524,15 @@ def generate_pdf(invoice, settings, job_summary_text):
             if not line:
                 continue 
 
-            # CHECK 1: Starts with ## (Just Bold)
             if line.startswith('##'):
-                clean_text = line[2:].strip() # Remove first 2 chars
+                clean_text = line[2:].strip()
                 elements.append(Paragraph(clean_text, summary_sub))
-            
-            # CHECK 2: Starts with # (Main Header Style)
             elif line.startswith('#'):
-                clean_text = line[1:].strip() # Remove first 1 char
+                clean_text = line[1:].strip()
                 elements.append(Paragraph(clean_text, summary_main))
-                
-            # CHECK 3: Bullets
             elif line.startswith('*') or line.startswith('-'):
                 clean_text = line.lstrip('*-').strip()
                 elements.append(Paragraph(f"• {clean_text}", summary_bullet))
-                
-            # CHECK 4: Normal Text
             else:
                 elements.append(Paragraph(line, header_text))
         
@@ -352,8 +559,10 @@ def generate_pdf(invoice, settings, job_summary_text):
         ])
         
         if item.get('notes'):
-            note_style = ParagraphStyle('note', parent=styles['Normal'], fontSize=9, textColor=colors.grey, fontName='Helvetica-Oblique')
-            table_data.append(['', Paragraph(f"<i>Note: {item['notes']}</i>", note_style), '' ])
+            note_style = ParagraphStyle('note', parent=styles['Normal'], 
+                                        fontSize=9, textColor=colors.grey, 
+                                        fontName='Helvetica-Oblique')
+            table_data.append(['', Paragraph(f"<i>Note: {item['notes']}</i>", note_style), ''])
 
     # ================= TOTALS =================
     subtotal = float(invoice.get('total', 0))
@@ -405,5 +614,10 @@ def generate_pdf(invoice, settings, job_summary_text):
     doc.build(elements)
     return buffer
 
+# ============================================
+# MAIN
+# ============================================
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
+    port = int(os.environ.get('PORT', 10000))
+    app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
