@@ -27,9 +27,19 @@ import sys
 
 raw_url = os.environ.get('SUPABASE_URL')
 raw_key = os.environ.get('SUPABASE_KEY')
+from flask import Flask, request, jsonify, send_from_directory, send_file
+from flask_cors import CORS
+from supabase import create_client, Client
+import os
+import sys
 
-# 1. FAILSAFE: Automatically remove empty spaces, newlines, or quotes
-#    This fixes the issue even if you accidentally pasted " key " or "'key'" in Render.
+app = Flask(__name__, static_folder='static')
+CORS(app)
+
+# Clean environment variables
+raw_url = os.environ.get('SUPABASE_URL')
+raw_key = os.environ.get('SUPABASE_KEY')
+
 if raw_url:
     SUPABASE_URL = raw_url.strip().strip("'").strip('"')
 else:
@@ -40,41 +50,36 @@ if raw_key:
 else:
     SUPABASE_KEY = None
 
-# 2. DEBUGGING: Print what Python actually sees (Safe Logs)
+# Debug logging
 print(f"DEBUG: URL is set? {bool(SUPABASE_URL)}")
 if SUPABASE_URL:
-    print(f"DEBUG: URL starts with: '{SUPABASE_URL[:8]}'") # Should be 'https://'
+    print(f"DEBUG: URL starts with: '{SUPABASE_URL[:8]}'")
     print(f"DEBUG: URL ends with:   '{SUPABASE_URL[-5:]}'")
 
 print(f"DEBUG: KEY is set? {bool(SUPABASE_KEY)}")
 if SUPABASE_KEY:
     print(f"DEBUG: KEY length: {len(SUPABASE_KEY)}")
-    print(f"DEBUG: KEY starts with: '{SUPABASE_KEY[:5]}'") # Should be 'eyJhb'
+    print(f"DEBUG: KEY starts with: '{SUPABASE_KEY[:6]}'")
     print(f"DEBUG: KEY ends with:   '{SUPABASE_KEY[-5:]}'")
 
-# 3. CRASH PREVENTION: Stop here if keys are missing
-if not SUPABASE_URL or not SUPABASE_KEY:
-    print("❌ CRITICAL ERROR: URL or KEY is missing or empty.")
-    sys.exit(1)
-
-# 4. CONNECT
-try:
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-except Exception as e:
-    print(f"❌ CRITICAL ERROR during create_client: {e}")
-    sys.exit(1)
-
-# Helper to get setting or return default
-def get_db_setting(key, default_value):
+# Connect to Supabase with proper error handling
+supabase = None
+if SUPABASE_URL and SUPABASE_KEY:
     try:
-        response = supabase.table('settings').select('value').eq('key', key).execute()
-        if response.data and len(response.data) > 0:
-            return response.data[0]['value']
-        return default_value
+        # For supabase >= 2.4.0, use this simpler syntax
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        print("✅ Supabase client created successfully")
     except Exception as e:
-        print(f"Error fetching {key}: {e}")
-        return default_value
+        print(f"⚠️ WARNING: Could not connect to Supabase: {e}")
+        print("⚠️ App will continue with file-based storage only")
+        supabase = None
+else:
+    print("⚠️ WARNING: Supabase credentials not found")
+    print("⚠️ App will use file-based storage only")
 
+# Helper function to check if Supabase is available
+def has_supabase():
+    return supabase is not None
 # --- API ROUTES ---
 
 @app.route('/')
