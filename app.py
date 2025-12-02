@@ -22,11 +22,26 @@ from reportlab.lib.utils import ImageReader
 app = Flask(__name__, static_folder='static')
 CORS(app)
 
-# ... imports ...
+import sys
 
 # Supabase setup
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
 SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
+if not SUPABASE_URL:
+    print("❌ CRITICAL ERROR: SUPABASE_URL is missing.")
+    # We exit here because the app cannot function without DB
+    # But now we know exactly why it failed in the logs
+    sys.exit(1)
+
+if not SUPABASE_KEY:
+    print("❌ CRITICAL ERROR: SUPABASE_KEY is missing.")
+    sys.exit(1)
+
+try:
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+except Exception as e:
+    print(f"❌ CRITICAL ERROR: Could not connect to Supabase. Check your URL/KEY format. Error: {e}")
+    sys.exit(1)
 
 # Add this check to debug WHY it fails
 if not SUPABASE_URL:
