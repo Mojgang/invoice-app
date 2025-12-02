@@ -22,9 +22,26 @@ from reportlab.lib.utils import ImageReader
 app = Flask(__name__, static_folder='static')
 CORS(app)
 
+# ... imports ...
+
 # Supabase setup
-SUPABASE_URL = 'https://iqqczpmvqiuqrtnzusqx.supabase.co'
-SUPABASE_KEY = "sb_publishable_7EhrzbtM43LQrNFCY019UQ_KKKjCino"
+SUPABASE_URL = os.environ.get('SUPABASE_URL')
+SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
+
+# Add this check to debug WHY it fails
+if not SUPABASE_URL:
+    print("CRITICAL ERROR: SUPABASE_URL is missing from environment variables.")
+if not SUPABASE_KEY:
+    print("CRITICAL ERROR: SUPABASE_KEY is missing from environment variables.")
+
+# Only try to connect if keys exist
+if SUPABASE_URL and SUPABASE_KEY:
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+else:
+    # This prevents the app from crashing immediately, but API calls will fail
+    # It allows the server to start so you can read the logs
+    print("Warning: Supabase client not initialized due to missing keys.")
+    supabase = None
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Helper to get setting or return default
