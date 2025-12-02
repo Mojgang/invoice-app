@@ -16,8 +16,6 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.units import mm
 from reportlab.lib.enums import TA_LEFT
 
-import requests
-from reportlab.lib.utils import ImageReader
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
@@ -27,11 +25,6 @@ import sys
 
 raw_url = os.environ.get('SUPABASE_URL')
 raw_key = os.environ.get('SUPABASE_KEY')
-from flask import Flask, request, jsonify, send_from_directory, send_file
-from flask_cors import CORS
-from supabase import create_client, Client
-import os
-import sys
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
@@ -66,8 +59,9 @@ if SUPABASE_KEY:
 supabase = None
 if SUPABASE_URL and SUPABASE_KEY:
     try:
-        # For supabase >= 2.4.0, use this simpler syntax
-        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        
+        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
         print("✅ Supabase client created successfully")
     except Exception as e:
         print(f"⚠️ WARNING: Could not connect to Supabase: {e}")
