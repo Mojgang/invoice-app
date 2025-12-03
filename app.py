@@ -6,8 +6,9 @@ from datetime import datetime
 import uuid
 import io
 import pytz
-import psycopg2
-from psycopg2.extras import RealDictCursor, Json
+import psycopg
+from psycopg.rows import dict_row
+from psycopg.types.json import Jsonb
 
 # ReportLab imports
 from reportlab.lib.pagesizes import A4
@@ -40,7 +41,7 @@ def get_db_connection():
         raise Exception("No database credentials found. Set DATABASE_URL or SUPABASE_DB_HOST + SUPABASE_DB_PASSWORD")
     
     try:
-        conn = psycopg2.connect(db_url, cursor_factory=RealDictCursor)
+        conn = psycopg.connect(db_url, row_factory=dict_row)
         return conn
     except Exception as e:
         print(f"❌ Database connection failed: {e}")
@@ -89,7 +90,7 @@ def init_database():
             INSERT INTO settings (key, value)
             VALUES ('company_settings', %s)
             ON CONFLICT (key) DO NOTHING
-        """, (Json({
+        """, (Jsonb({
             "quote_prefix": "JN",
             "next_quote_number": 5401,
             "company_name": "Your Company",
@@ -107,7 +108,7 @@ def init_database():
             INSERT INTO settings (key, value)
             VALUES ('services', %s)
             ON CONFLICT (key) DO NOTHING
-        """, (Json({
+        """, (Jsonb({
             "electrician": {"name": "Electrician", "price": 85, "unit": "hour"},
             "plumber": {"name": "Plumber", "price": 90, "unit": "hour"}
         }),))
@@ -116,7 +117,7 @@ def init_database():
             INSERT INTO settings (key, value)
             VALUES ('job_summary', %s)
             ON CONFLICT (key) DO NOTHING
-        """, (Json({"text": "Default job summary..."}),))
+        """, (Jsonb({"text": "Default job summary..."}),))
         
         conn.commit()
         cursor.close()
@@ -169,7 +170,7 @@ def set_setting(key, value):
             VALUES (%s, %s, %s)
             ON CONFLICT (key) 
             DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at
-        """, (key, Json(value), datetime.now().isoformat()))
+        """, (key, Jsonb(value), datetime.now().isoformat()))
         conn.commit()
         cursor.close()
         conn.close()
@@ -281,7 +282,7 @@ def create_invoice():
             invoice['clientName'],
             invoice.get('clientNumber', ''),
             invoice.get('projectNotes', ''),
-            Json(invoice['items']),
+            Jsonb(invoice['items']),
             invoice['total'],
             created_at
         ))
@@ -335,7 +336,7 @@ def update_invoice(invoice_id):
             invoice['clientName'],
             invoice.get('clientNumber', ''),
             invoice.get('projectNotes', ''),
-            Json(invoice['items']),
+            Jsonb(invoice['items']),
             invoice['total'],
             updated_at,
             invoice_id
@@ -452,7 +453,6 @@ def generate_pdf_route(invoice_id):
 # ============================================
 
 def generate_pdf(invoice, settings, job_summary_text):
-    """Generate PDF content"""
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4,
                             topMargin=15*mm, bottomMargin=15*mm,
@@ -460,29 +460,25 @@ def generate_pdf(invoice, settings, job_summary_text):
 
     styles = getSampleStyleSheet()
     
-    # Header styles
-    header_title = ParagraphStyle('HeaderTitle', parent=styles['Heading1'], 
-                                   fontSize=24, spaceAfter=8, textColor=colors.black)
-    header_text = ParagraphStyle('HeaderText', parent=styles['Normal'], 
-                                  fontSize=10, leading=14)
-    total_label_style = ParagraphStyle('TotalLabel', parent=styles['Normal'], 
-                                        alignment=TA_RIGHT)
+    # --- HEADER STYLES ---
+    header_title = ParagraphStyle('HeaderTitle', parent=styles['Heading1'], fontSize=24, spaceAfter=8, textColor=colors.black)
+    header_text = ParagraphStyle('HeaderText', parent=styles['Normal'], fontSize=10, leading=14)
+    total_label_style = ParagraphStyle('TotalLabel', parent=styles['Normal'], alignment=TA_RIGHT)
     
-    # Job summary styles
-    summary_main = ParagraphStyle('SummaryMain', parent=styles['Normal'], 
-                                   fontSize=11, leading=15, fontName='Helvetica-Bold', 
-                                   spaceBefore=10, spaceAfter=4)
-    summary_sub = ParagraphStyle('SummarySub', parent=styles['Normal'], 
-                                  fontSize=10, leading=14, fontName='Helvetica-Bold', 
-                                  spaceBefore=3)
-    summary_bullet = ParagraphStyle('SummaryBullet', parent=styles['Normal'], 
-                                     fontSize=10, leading=14, leftIndent=12)
+    # --- JOB SUMMARY STYLES (NEW) ---
+    # Style for "JOB SUMMARY:" and "# Title"
+    summary_main = ParagraphStyle('SummaryMain', parent=styles['Normal'], fontSize=11, leading=15, fontName='Helvetica-Bold', spaceBefore=10, spaceAfter=4)
+    
+    # Style for "## Subtitle" (Just bold, same size as text)
+    summary_sub = ParagraphStyle('SummarySub', parent=styles['Normal'], fontSize=10, leading=14, fontName='Helvetica-Bold', spaceBefore=3)
+    
+    # Style for "* Bullet"
+    summary_bullet = ParagraphStyle('SummaryBullet', parent=styles['Normal'], fontSize=10, leading=14, leftIndent=12)
 
     elements = []
 
     # ================= HEADER SECTION =================
     quote_num = invoice.get('quote_number', 'N/A')
-    
     try:
         date_obj = datetime.fromisoformat(invoice['created_at'].replace('Z', '+00:00'))
         date_str = date_obj.strftime('%d %B %Y')
@@ -500,8 +496,14 @@ def generate_pdf(invoice, settings, job_summary_text):
         Paragraph(f"<b>Client Number:</b> {invoice.get('client_number', '')}", header_text),
     ]
 
-    # Logo placeholder (you can upload logo to static folder and reference it)
-    right_column = [Paragraph("", header_text)]
+    right_column = []
+    logo_path = os.path.join(app.root_path, 'static', 'logo.jpg')
+    if os.path.exists(logo_path):
+        logo = Image(logo_path, width=70*mm, height=40*mm)
+        logo.hAlign = 'RIGHT'
+        right_column.append(logo)
+    else:
+        right_column.append(Paragraph("<b>LOGO</b>", header_title))
 
     header_data = [[left_column, right_column]]
     header_table = Table(header_data, colWidths=[100*mm, 80*mm])
@@ -515,8 +517,9 @@ def generate_pdf(invoice, settings, job_summary_text):
     elements.append(header_table)
     elements.append(Spacer(1, 5*mm))
 
-    # ================= JOB SUMMARY =================
+    # ================= JOB SUMMARY (Logic Updated) =================
     if job_summary_text:
+        # Main Title
         elements.append(Paragraph("JOB SUMMARY:", summary_main))
 
         for line in job_summary_text.split('\n'):
@@ -524,15 +527,22 @@ def generate_pdf(invoice, settings, job_summary_text):
             if not line:
                 continue 
 
+            # CHECK 1: Starts with ## (Just Bold)
             if line.startswith('##'):
-                clean_text = line[2:].strip()
+                clean_text = line[2:].strip() # Remove first 2 chars
                 elements.append(Paragraph(clean_text, summary_sub))
+            
+            # CHECK 2: Starts with # (Main Header Style)
             elif line.startswith('#'):
-                clean_text = line[1:].strip()
+                clean_text = line[1:].strip() # Remove first 1 char
                 elements.append(Paragraph(clean_text, summary_main))
+                
+            # CHECK 3: Bullets
             elif line.startswith('*') or line.startswith('-'):
                 clean_text = line.lstrip('*-').strip()
                 elements.append(Paragraph(f"• {clean_text}", summary_bullet))
+                
+            # CHECK 4: Normal Text
             else:
                 elements.append(Paragraph(line, header_text))
         
@@ -559,10 +569,8 @@ def generate_pdf(invoice, settings, job_summary_text):
         ])
         
         if item.get('notes'):
-            note_style = ParagraphStyle('note', parent=styles['Normal'], 
-                                        fontSize=9, textColor=colors.grey, 
-                                        fontName='Helvetica-Oblique')
-            table_data.append(['', Paragraph(f"<i>Note: {item['notes']}</i>", note_style), ''])
+            note_style = ParagraphStyle('note', parent=styles['Normal'], fontSize=9, textColor=colors.grey, fontName='Helvetica-Oblique')
+            table_data.append(['', Paragraph(f"<i>Note: {item['notes']}</i>", note_style), '' ])
 
     # ================= TOTALS =================
     subtotal = float(invoice.get('total', 0))
@@ -613,7 +621,6 @@ def generate_pdf(invoice, settings, job_summary_text):
 
     doc.build(elements)
     return buffer
-
 # ============================================
 # MAIN
 # ============================================
