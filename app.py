@@ -6,7 +6,7 @@ from datetime import datetime
 import uuid
 import io
 import pytz
-import psycopg2
+import psycopg2 as psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
