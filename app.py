@@ -6,9 +6,10 @@ from datetime import datetime
 import uuid
 import io
 import pytz
-import psycopg2 as psycopg
-from psycopg.rows import dict_row
-from psycopg.types.json import Jsonb
+import psycopg2 
+import psycopg2.extras as extras
+from psycopg2.extras import Json
+
 
 # ReportLab imports
 from reportlab.lib.pagesizes import A4
@@ -31,8 +32,8 @@ def get_db_connection():
     
     if not db_url:
         # Build from individual components
-        host = os.environ.get('SUPABASE_DB_HOST')
-        password = os.environ.get('SUPABASE_DB_PASSWORD')
+        host = os.environ.get('SUPABASE_DB_HOST','db.iqqczpmvqiuqrtnzusqx.supabase.co')
+        password = os.environ.get('SUPABASE_DB_PASSWORD','Mashahamed136586!')
         
         if host and password:
             db_url = f"postgresql://postgres:{password}@db.iqqczpmvqiuqrtnzusqx.supabase.co:5432/postgres"
@@ -41,94 +42,34 @@ def get_db_connection():
         raise Exception("No database credentials found. Set DATABASE_URL or SUPABASE_DB_HOST + SUPABASE_DB_PASSWORD")
     
     try:
-        conn = psycopg.connect(db_url, row_factory=dict_row)
+        conn = psycopg2.connect(db_url)
         return conn
     except Exception as e:
         print(f"❌ Database connection failed: {e}")
         raise
 
+from psycopg2.extras import RealDictCursor, Json
+
 def init_database():
-    """Initialize database tables"""
+    """Verify database connection and that 'services' table exists."""
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        print("Creating database tables...")
-        
-        # Create invoices table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS invoices (
-                id TEXT PRIMARY KEY,
-                quote_number TEXT,
-                client_name TEXT,
-                client_number TEXT,
-                project_notes TEXT,
-                items JSONB,
-                total DECIMAL(10,2),
-                created_at TIMESTAMPTZ DEFAULT NOW(),
-                updated_at TIMESTAMPTZ
-            )
-        """)
-        
-        # Create settings table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS settings (
-                key TEXT PRIMARY KEY,
-                value JSONB,
-                updated_at TIMESTAMPTZ DEFAULT NOW()
-            )
-        """)
-        
-        # Create index for faster queries
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_invoices_created 
-            ON invoices(created_at DESC)
-        """)
-        
-        # Initialize default settings if not exist
-        cursor.execute("""
-            INSERT INTO settings (key, value)
-            VALUES ('company_settings', %s)
-            ON CONFLICT (key) DO NOTHING
-        """, (Jsonb({
-            "quote_prefix": "JN",
-            "next_quote_number": 5401,
-            "company_name": "Your Company",
-            "abn": "",
-            "phone": "",
-            "email": "",
-            "address": "",
-            "area_manager": "",
-            "bank_account_name": "",
-            "bank_bsb": "",
-            "bank_account": ""
-        }),))
-        
-        cursor.execute("""
-            INSERT INTO settings (key, value)
-            VALUES ('services', %s)
-            ON CONFLICT (key) DO NOTHING
-        """, (Jsonb({
-            "electrician": {"name": "Electrician", "price": 85, "unit": "hour"},
-            "plumber": {"name": "Plumber", "price": 90, "unit": "hour"}
-        }),))
-        
-        cursor.execute("""
-            INSERT INTO settings (key, value)
-            VALUES ('job_summary', %s)
-            ON CONFLICT (key) DO NOTHING
-        """, (Jsonb({"text": "Default job summary..."}),))
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        print("✅ Database initialized successfully")
-        return True
-        
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'services'
+                );
+            """)
+            exists = cur.fetchone()[0]
+
+            if not exists:
+                print("❌ Table 'services' does not exist. Please create it manually.")
+            else:
+                print("✅ Database ready. Using existing 'services' table.")
+
     except Exception as e:
-        print(f"❌ Database initialization failed: {e}")
-        raise
+        print(f"❌ Database init failed: {e}")
 
 # Initialize database on startup
 try:
@@ -146,7 +87,7 @@ def get_setting(key, default_value):
     """Get setting from database"""
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
+        cursor = cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute("SELECT value FROM settings WHERE key = %s", (key,))
         row = cursor.fetchone()
         cursor.close()
@@ -164,13 +105,13 @@ def set_setting(key, value):
     """Set setting in database"""
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
+        cursor = cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute("""
             INSERT INTO settings (key, value, updated_at)
             VALUES (%s, %s, %s)
             ON CONFLICT (key) 
             DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at
-        """, (key, Jsonb(value), datetime.now().isoformat()))
+        """, (key, Json(value), datetime.now().isoformat()))
         conn.commit()
         cursor.close()
         conn.close()
@@ -238,7 +179,7 @@ def get_invoices():
     """Get all invoices from database"""
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
+        cursor = cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute("SELECT * FROM invoices ORDER BY created_at DESC")
         invoices = cursor.fetchall()
         cursor.close()
@@ -270,7 +211,7 @@ def create_invoice():
         
         # Save to database
         conn = get_db_connection()
-        cursor = conn.cursor()
+        cursor = cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute("""
             INSERT INTO invoices (id, quote_number, client_name, client_number, 
                                  project_notes, items, total, created_at)
@@ -282,7 +223,7 @@ def create_invoice():
             invoice['clientName'],
             invoice.get('clientNumber', ''),
             invoice.get('projectNotes', ''),
-            Jsonb(invoice['items']),
+            Json(invoice['items']),
             invoice['total'],
             created_at
         ))
@@ -307,7 +248,7 @@ def delete_invoice(invoice_id):
     """Delete invoice from database"""
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
+        cursor = cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute("DELETE FROM invoices WHERE id = %s", (invoice_id,))
         conn.commit()
         cursor.close()
@@ -325,7 +266,8 @@ def update_invoice(invoice_id):
         updated_at = datetime.now().isoformat()
         
         conn = get_db_connection()
-        cursor = conn.cursor()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
         cursor.execute("""
             UPDATE invoices 
             SET client_name = %s, client_number = %s, project_notes = %s,
@@ -336,7 +278,7 @@ def update_invoice(invoice_id):
             invoice['clientName'],
             invoice.get('clientNumber', ''),
             invoice.get('projectNotes', ''),
-            Jsonb(invoice['items']),
+            Json(invoice['items']),
             invoice['total'],
             updated_at,
             invoice_id
@@ -415,7 +357,7 @@ def generate_pdf_route(invoice_id):
     """Generate PDF for invoice"""
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
+        cursor = cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute("SELECT * FROM invoices WHERE id = %s", (invoice_id,))
         row = cursor.fetchone()
         cursor.close()
@@ -624,7 +566,8 @@ def generate_pdf(invoice, settings, job_summary_text):
 # ============================================
 # MAIN
 # ============================================
-
+'''
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
+    '''
