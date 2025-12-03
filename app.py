@@ -28,21 +28,13 @@ CORS(app)
 
 def get_db_connection():
     """Get PostgreSQL connection from Supabase"""
-    db_url = os.environ.get('DATABASE_URL')
+    SUPABASE_DB_URL = os.environ.get('SUPABASE_DB_URL')
     
-    if not db_url:
-        # Build from individual components
-        host = os.environ.get('SUPABASE_DB_HOST','db.iqqczpmvqiuqrtnzusqx.supabase.co')
-        password = os.environ.get('SUPABASE_DB_PASSWORD','Mashahamed136586!')
-        
-        if host and password:
-            db_url = f"postgresql://postgres:{password}@db.iqqczpmvqiuqrtnzusqx.supabase.co:5432/postgres"
-    
-    if not db_url:
+    if not SUPABASE_DB_URL:
         raise Exception("No database credentials found. Set DATABASE_URL or SUPABASE_DB_HOST + SUPABASE_DB_PASSWORD")
     
     try:
-        conn = psycopg2.connect(db_url)
+        conn = psycopg2.connect(SUPABASE_DB_URL)
         return conn
     except Exception as e:
         print(f"❌ Database connection failed: {e}")
