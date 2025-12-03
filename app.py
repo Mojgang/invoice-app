@@ -35,7 +35,7 @@ def get_db_connection():
         password = os.environ.get('SUPABASE_DB_PASSWORD')
         
         if host and password:
-            db_url = f"postgresql://postgres.{host}:5432/postgres?password={password}"
+            db_url = f"postgresql://postgres:{password}@db.iqqczpmvqiuqrtnzusqx.supabase.co:5432/postgres"
     
     if not db_url:
         raise Exception("No database credentials found. Set DATABASE_URL or SUPABASE_DB_HOST + SUPABASE_DB_PASSWORD")
